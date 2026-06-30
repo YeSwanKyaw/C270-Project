@@ -15,9 +15,10 @@ window.title("Answer and Conquer")
 window.geometry("1000x700")
 window.resizable(False, False)
 
-BACKGROUND_COLOR = "#808080"
+# "default" means that each page uses its original color.
+BACKGROUND_COLOR = "default"
 
-window.configure(bg=BACKGROUND_COLOR)
+window.configure(bg="#808080")
 
 
 # -----------------------------
@@ -42,25 +43,47 @@ def open_statistics():
 
 
 def open_settings():
-    settings.run(window, show_menu)
+    settings.run(window, show_menu, BACKGROUND_COLOR, set_background_color)
 
 
-def show_menu():
+def set_background_color(color):
+    # Save the chosen color so other screens can reuse it.
+    global BACKGROUND_COLOR
+    BACKGROUND_COLOR = color
+
+
+def show_menu(error_message=""):
     clear_window()
-    window.configure(bg=BACKGROUND_COLOR)
+
+    # The main menu's original background is grey.
+    menu_color = "#808080" if BACKGROUND_COLOR == "default" else BACKGROUND_COLOR
+    window.configure(bg=menu_color)
+
+    # Keep the title readable on light background colors.
+    title_color = "black" if menu_color == "#B8B8B8" else "white"
 
     title_label = tk.Label(
         window,
         text="ANSWER AND CONQUER",
         font=("Arial", 34, "bold"),
-        fg="white",
-        bg=BACKGROUND_COLOR
+        fg=title_color,
+        bg=menu_color
     )
     title_label.pack(pady=(70, 50))
 
+    if error_message:
+        error_label = tk.Label(
+            window,
+            text=error_message,
+            font=("Arial", 15, "bold"),
+            fg="red",
+            bg=menu_color
+        )
+        error_label.pack(pady=(0, 10))
+
     button_details = [
         ("Play", play_game, "#F39C12", "#F5B041"),
-        ("Gamemodes", open_gamemode, "#7CB342", "#9CCC65"),
+        ("VS BOT", open_gamemode, "#7CB342", "#9CCC65"),
         ("Statistics", open_statistics, "#3498DB", "#5DADE2"),
         ("Settings", open_settings, "#E74C3C", "#EC7063")
     ]
@@ -87,6 +110,14 @@ def show_menu():
 # -----------------------------
 # START APPLICATION
 # -----------------------------
+
+def close_app():
+    # Close any sockets before exiting.
+    game.close_connections()
+    window.destroy()
+
+
+window.protocol("WM_DELETE_WINDOW", close_app)
 
 show_menu()
 window.mainloop()

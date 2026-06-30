@@ -1,7 +1,7 @@
 import tkinter as tk
 
 
-# This is the place where the different gamemodes are defined.
+# This is the place where the VS Bot mode will be made.
 def run(window, show_menu):
     for widget in window.winfo_children():
         widget.destroy()
@@ -10,7 +10,7 @@ def run(window, show_menu):
 
     title_label = tk.Label(
         window,
-        text="Gamemodes",
+        text="VS BOT",
         font=("Arial", 30, "bold"),
         bg="#7CB342",
         fg="white"
@@ -19,7 +19,7 @@ def run(window, show_menu):
 
     message_label = tk.Label(
         window,
-        text="Put the gamemode content in gamemodes.py",
+        text="Put the VS Bot game content in gamemodes.py",
         font=("Arial", 16),
         bg="#7CB342",
         fg="white"
