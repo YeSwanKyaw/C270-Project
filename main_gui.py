@@ -1,0 +1,193 @@
+import tkinter as tk
+from tkinter import messagebox
+import random
+import game_engine 
+
+QUESTION_BANK = [
+    {"question": "What is the capital of France?", "answer": "Paris"},
+    {"question": "What is 5 + 7?", "answer": "12"},
+    {"question": "Which planet is known as the Red Planet?", "answer": "Mars"},
+    {"question": "What is the largest ocean on Earth?", "answer": "Pacific"},
+    {"question": "Who wrote 'Hamlet'?", "answer": "Shakespeare"},
+    {"question": "What is the chemical symbol for water?", "answer": "H2O"},
+    {"question": "How many continents are there?", "answer": "7"},
+    {"question": "What is the square root of 64?", "answer": "8"}
+]
+
+class QuestionPopup:
+    """Handles the Tkinter popup, the ticking timer, and the skip button."""
+    def __init__(self, parent, question_data, player, skips_left, callback):
+        self.top = tk.Toplevel(parent)
+        self.top.title(f"Player {player} - Answer to Conquer!")
+        self.top.geometry("350x250")
+        self.top.transient(parent)
+        self.top.grab_set()
+        
+        self.callback = callback
+        self.correct_answer = question_data["answer"].lower()
+        self.time_left = 15  # 15 seconds per turn
+        self.timer_active = True
+        
+        # Timer Display
+        self.timer_label = tk.Label(self.top, text=f"Time: {self.time_left}s", font=("Arial", 14, "bold"), fg="red")
+        self.timer_label.pack(pady=5)
+        
+        tk.Label(self.top, text=question_data["question"], wraplength=280, font=("Arial", 12)).pack(pady=10)
+        
+        self.answer_entry = tk.Entry(self.top, font=("Arial", 12))
+        self.answer_entry.pack(pady=5)
+        self.answer_entry.focus()
+        
+        self.top.bind('<Return>', lambda event: self.submit(used_skip=False))
+        tk.Button(self.top, text="Submit Answer", command=lambda: self.submit(used_skip=False)).pack(pady=5)
+        
+        # Skip Button Logic
+        if skips_left > 0:
+            tk.Button(self.top, text=f"Use Skip ({skips_left} left)", bg="gold", 
+                      command=lambda: self.submit(used_skip=True)).pack(pady=5)
+        else:
+            tk.Label(self.top, text="No skips remaining", fg="gray").pack(pady=5)
+            
+        self.update_timer()
+
+    def update_timer(self):
+        if not self.timer_active:
+            return
+            
+        if self.time_left > 0:
+            self.time_left -= 1
+            self.timer_label.config(text=f"Time: {self.time_left}s")
+            self.top.after(1000, self.update_timer)
+        else:
+            # Time out triggers a failed answer automatically
+            self.timer_label.config(text="TIME'S UP!")
+            self.submit(timeout=True)
+
+    def submit(self, used_skip=False, timeout=False):
+        self.timer_active = False # Stop the clock
+        
+        if used_skip:
+            self.top.destroy()
+            self.callback(is_correct=False, used_skip=True, timeout=False)
+            return
+            
+        if timeout:
+            self.top.destroy()
+            self.callback(is_correct=False, used_skip=False, timeout=True)
+            return
+
+        user_answer = self.answer_entry.get().strip().lower()
+        is_correct = (user_answer == self.correct_answer)
+        
+        if not is_correct:
+            messagebox.showerror("Incorrect!", f"The correct answer was: {self.correct_answer.title()}", parent=self.top)
+            
+        self.top.destroy()
+        self.callback(is_correct, used_skip=False, timeout=False)
+
+
+class AnswerAndConquerGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Answer and Conquer - Prototype")
+        
+        self.engine = game_engine.GameEngine()
+        
+        # Header Frame for Status and Skips
+        header_frame = tk.Frame(root)
+        header_frame.grid(row=0, column=0, columnspan=5, pady=10)
+        
+        self.status_label = tk.Label(header_frame, text="Player 1's Turn", font=("Arial", 16, "bold"))
+        self.status_label.pack()
+        
+        self.skip_label = tk.Label(header_frame, text="P1 Skips: 3  |  P2 Skips: 3", font=("Arial", 10))
+        self.skip_label.pack()
+        
+        self.buttons = {}
+        
+        # Generate Grid
+        for r in range(game_engine.BOARD_SIZE):
+            for c in range(game_engine.BOARD_SIZE):
+                btn = tk.Button(root, text="", width=8, height=4, font=("Arial", 12, "bold"),
+                                command=lambda row=r, col=c: self.handle_click(row, col))
+                btn.grid(row=r+1, column=c, padx=2, pady=2)
+                self.buttons[(r, c)] = btn
+
+    def handle_click(self, row, col):
+        current_player = self.engine.active_player
+        
+        # Retrieve remaining skips from the backend engine dictionary
+        # (Assumes Claude names the variable self.skips)
+        skips_left = self.engine.skips.get(current_player, 0) 
+        
+        question_data = random.choice(QUESTION_BANK)
+        QuestionPopup(self.root, question_data, current_player, skips_left, 
+                      lambda is_correct, used_skip, timeout: self.resolve_turn(is_correct, used_skip, timeout, row, col))
+
+    def resolve_turn(self, is_correct, used_skip, timeout, row, col):
+        current_player = self.engine.active_player
+        
+        if used_skip:
+            messagebox.showinfo("Skip Used", "You used a skip to protect your tiles. Turn ends.")
+            self.engine.fail_turn(player=current_player, used_skip=True)
+            
+        elif timeout or not is_correct:
+            if timeout:
+                messagebox.showwarning("Time Out", "You ran out of time!")
+            
+            # Backend handles the 40% chance to lose a tile
+            self.engine.fail_turn(player=current_player, used_skip=False)
+            
+        else:
+            # Player got it right. The backend claim_space handles the 20% overclock bonus.
+            self.engine.claim_space(row, col)
+            
+        # Check Win States before passing turn
+        if self.engine.check_win_condition(current_player):
+            self.sync_board_and_ui()
+            messagebox.showinfo("Victory!", f"Player {current_player} wins with 4-in-a-row!")
+            self.disable_all_buttons()
+            return
+            
+        if self.engine.is_board_full():
+            self.sync_board_and_ui()
+            winner = self.engine.get_territory_winner()
+            if winner == 0:
+                messagebox.showinfo("Game Over", "It's a complete tie!")
+            else:
+                messagebox.showinfo("Game Over", f"Board full! Player {winner} wins by territory control!")
+            self.disable_all_buttons()
+            return
+
+        self.engine.switch_turn()
+        self.sync_board_and_ui()
+
+    def sync_board_and_ui(self):
+        """Redraws the entire board and HUD to match the backend dictionaries."""
+        # 1. Update the top labels
+        self.status_label.config(text=f"Player {self.engine.active_player}'s Turn")
+        
+        p1_skips = self.engine.skips.get(1, 0)
+        p2_skips = self.engine.skips.get(2, 0)
+        self.skip_label.config(text=f"P1 Skips: {p1_skips}  |  P2 Skips: {p2_skips}")
+
+        # 2. Sync every button on the grid
+        for (r, c), owner in self.engine.board.items():
+            btn = self.buttons[(r, c)]
+            
+            if owner == 1:
+                btn.config(text="P1", bg="#add8e6", state="disabled")
+            elif owner == 2:
+                btn.config(text="P2", bg="#f08080", state="disabled")
+            else:
+                btn.config(text="", bg="SystemButtonFace", state="normal")
+
+    def disable_all_buttons(self):
+        for btn in self.buttons.values():
+            btn.config(state="disabled")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.resizable(False, False) 
+    app = AnswerAndConquerGUI(root)
+    root.mainloop()
