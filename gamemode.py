@@ -4,8 +4,10 @@ import os
 import random
 import re
 import threading
+import time
 
-import requests
+import groq
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,8 +15,10 @@ load_dotenv()
 app = Flask(__name__)
 
 # --- Config -----------------------------------------------------------
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+
+_groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 GRID_SIZE = 5
 WIN_LENGTH = 4
@@ -150,15 +154,8 @@ def get_cpu_move(board_state):
 
 
 # --- AI opponent (trained model via API) --------------------------------
-def _gemini_url():
-    return (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    )
-
-
 def _parse_move_index(text, valid_cells):
-    """Gemini may add extra words; extract the first valid board index."""
+    """The model may add extra words; extract the first valid board index."""
     for match in re.finditer(r"\b(\d+)\b", text):
         index = int(match.group(1))
         if index in valid_cells:
@@ -167,41 +164,67 @@ def _parse_move_index(text, valid_cells):
 
 
 def get_ai_move(board_state):
-    """Calls a hosted LLM (Gemini). Returns (index, source_label)."""
+    """Calls a hosted LLM (Groq/Llama). Returns (index, source_label)."""
     valid = empty_cells(board_state)
     if not valid:
         return None, "none"
 
-    if not GEMINI_API_KEY:
+    if not GROQ_API_KEY:
         return None, "api_key_missing"
 
-    prompt = (
-        "You are playing 5x5 tic-tac-toe where 4 in a row wins.\n"
+    system_prompt = (
+        "You are a competitive 5x5 tic-tac-toe engine where 4 in a row wins. "
+        "You must respond with ONLY a single integer - the board index you "
+        "choose. No words, no punctuation, no explanation. Just the number."
+    )
+    user_prompt = (
         "Board is a length-25 list indexed 0-24 (row-major). "
         "X is the human, O is you. Empty cells are \"\".\n"
         f"Board: {board_state}\n"
         f"Legal moves: {valid}\n"
-        "Reply with ONE legal index only (0-24). No explanation."
+        "Reply with ONE legal index only (0-24)."
     )
 
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    max_attempts = 3
+    retry_wait_seconds = 1.5
+    retryable_statuses = (503, 504)
 
-    try:
-        response = requests.post(
-            _gemini_url(),
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=8,
-        )
-        response.raise_for_status()
-        text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-        move = _parse_move_index(text, set(valid))
-        if move is None:
-            return None, "api_invalid_response"
-        return move, "gemini_api"
-    except (requests.RequestException, KeyError, IndexError, ValueError) as exc:
-        print(f"Gemini API error: {exc}")
-        return None, "api_error"
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = _groq_client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0,
+                max_tokens=8,
+                timeout=10,  # fail fast per attempt; retries add the buffer instead
+            )
+            text = response.choices[0].message.content
+            move = _parse_move_index(text, set(valid))
+            if move is None:
+                return None, "api_invalid_response"
+            return move, "groq_api"
+        except groq.APITimeoutError as exc:
+            if attempt < max_attempts:
+                print(f"Groq API timed out, retrying ({attempt}/{max_attempts})...")
+                time.sleep(retry_wait_seconds)
+                continue
+            print(f"Groq API error: {exc}")
+            return None, "api_error"
+        except groq.InternalServerError as exc:
+            if exc.status_code in retryable_statuses and attempt < max_attempts:
+                print(f"Groq API {exc.status_code}, retrying ({attempt}/{max_attempts})...")
+                time.sleep(retry_wait_seconds)
+                continue
+            print(f"Groq API error: {exc}")
+            return None, "api_error"
+        except (groq.APIConnectionError, groq.APIError, KeyError, IndexError, ValueError) as exc:
+            print(f"Groq API error: {exc}")
+            return None, "api_error"
+
+    return None, "api_error"
 
 
 def choose_opponent_move(mode, board_state):
@@ -214,6 +237,36 @@ def choose_opponent_move(mode, board_state):
 
 
 # --- Routes ---------------------------------------------------------------
+@app.route("/api/get_bot_move", methods=["POST"])
+def get_bot_move():
+    """Stateless move calculation: the caller's board_state is the single
+    source of truth (used by main_gui.py's own game_engine board), so this
+    endpoint does not read or write GAMES_DB at all."""
+    data = request.get_json(silent=True) or {}
+    board_state = data.get("board_state")
+    mode = data.get("mode")
+
+    if not isinstance(board_state, list) or len(board_state) != GRID_SIZE * GRID_SIZE:
+        return jsonify({
+            "error": f"board_state must be a list of {GRID_SIZE * GRID_SIZE} cells"
+        }), 400
+
+    if mode not in ("cpu", "ai"):
+        return jsonify({"error": "mode must be 'cpu' or 'ai'"}), 400
+
+    if mode == "ai" and not GROQ_API_KEY:
+        return jsonify({
+            "error": "AI mode requires GROQ_API_KEY to be set in the environment."
+        }), 503
+
+    move, source = choose_opponent_move(mode, board_state)
+
+    if move is None:
+        return jsonify({"error": "No move could be produced", "source": source}), 502
+
+    return jsonify({"move": move, "source": source}), 200
+
+
 @app.route("/api/start_match", methods=["POST"])
 def start_match():
     data = request.get_json(silent=True) or {}
@@ -222,9 +275,9 @@ def start_match():
     if mode not in ("local", "cpu", "ai"):
         return jsonify({"error": "mode must be 'local', 'cpu', or 'ai'"}), 400
 
-    if mode == "ai" and not GEMINI_API_KEY:
+    if mode == "ai" and not GROQ_API_KEY:
         return jsonify({
-            "error": "AI mode requires GEMINI_API_KEY to be set in the environment."
+            "error": "AI mode requires GROQ_API_KEY to be set in the environment."
         }), 503
 
     with _db_lock:
@@ -234,7 +287,7 @@ def start_match():
             "mode": mode,
             "player_1": "Player 1",
             "player_2": (
-                "Gemini_AI" if mode == "ai"
+                "Groq_AI" if mode == "ai"
                 else "CPU_Bot" if mode == "cpu"
                 else "Player 2"
             ),

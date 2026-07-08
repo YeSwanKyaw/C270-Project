@@ -1,52 +1,72 @@
 import tkinter as tk
 
 
-def run(window, show_menu, background_color, set_background_color):
-    for widget in window.winfo_children():
-        widget.destroy()
+class SettingsScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
 
-    # Settings uses red when the default palette is selected.
-    page_color = "#E74C3C" if background_color == "default" else background_color
-    light_colors = ("#B8B8B8",)
-    text_color = "black" if page_color in light_colors else "white"
-    window.configure(bg=page_color)
+        self.light_colors = ("#B8B8B8",)
+        self.default_palette = ["#808080", "#F39C12", "#7CB342", "#3498DB", "#E74C3C"]
 
-    title_label = tk.Label(
-        window,
-        text="Settings",
-        font=("Arial", 30, "bold"),
-        bg=page_color,
-        fg=text_color
-    )
-    title_label.pack(pady=(35, 25))
+        self.title_label = tk.Label(self, text="Settings", font=("Arial", 30, "bold"))
+        self.title_label.pack(pady=(35, 25))
 
-    settings_row = tk.Frame(window, bg=page_color)
-    settings_row.pack(pady=20)
+        self.settings_row = tk.Frame(self)
+        self.settings_row.pack(pady=20)
 
-    section_label = tk.Label(
-        settings_row,
-        text="Theme Color",
-        font=("Arial", 18, "bold"),
-        bg=page_color,
-        fg=text_color
-    )
-    section_label.pack(side="left", padx=(0, 20))
+        self.section_label = tk.Label(self.settings_row, text="Theme Color", font=("Arial", 18, "bold"))
+        self.section_label.pack(side="left", padx=(0, 20))
 
-    # Keep track of the selected radio-button color.
-    selected_color = tk.StringVar(value=background_color)
+        # Keep track of the selected radio-button color.
+        self.selected_color = tk.StringVar(value=controller.background_color)
 
-    color_frame = tk.Frame(settings_row, bg=page_color)
-    color_frame.pack(side="left")
+        self.color_frame = tk.Frame(self.settings_row)
+        self.color_frame.pack(side="left")
 
-    # The middle option contains all five original page colors.
-    default_palette = ["#808080", "#F39C12", "#7CB342", "#3498DB", "#E74C3C"]
-    color_choices = [
-        ("#505050", ["#505050"]),
-        ("default", default_palette),
-        ("#B8B8B8", ["#B8B8B8"])
-    ]
+        # The middle option contains all five original page colors.
+        color_choices = [
+            ("#505050", ["#505050"]),
+            ("default", self.default_palette),
+            ("#B8B8B8", ["#B8B8B8"])
+        ]
 
-    def make_color_square(colors):
+        for choice_value, square_colors in color_choices:
+            # Each colored square is also the clickable radio button.
+            square_image = self._make_color_square(square_colors)
+            color_option = tk.Radiobutton(
+                self.color_frame,
+                image=square_image,
+                variable=self.selected_color,
+                value=choice_value,
+                command=self.change_color,
+                indicatoron=False,
+                bg="#B0B0B0",
+                activebackground="#B0B0B0",
+                selectcolor="#707070",
+                relief="raised",
+                bd=3,
+                highlightthickness=0,
+                padx=0,
+                pady=0,
+                cursor="hand2"
+            )
+            color_option.pack(side="left", padx=10)
+            # Keep the image available while this screen is open.
+            color_option.image = square_image
+
+        back_button = tk.Button(
+            self,
+            text="Back",
+            command=lambda: controller.show_frame("MainMenu"),
+            font=("Arial", 16, "bold"),
+            width=12
+        )
+        back_button.pack(pady=30)
+
+        self.apply_theme(controller.background_color)
+
+    def _make_color_square(self, colors):
         """Create a small square containing one or more color stripes."""
         image = tk.PhotoImage(width=36, height=28)
         stripe_width = 36 // len(colors)
@@ -58,48 +78,22 @@ def run(window, show_menu, background_color, set_background_color):
 
         return image
 
-    def change_color():
-        selected_choice = selected_color.get()
-        new_color = "#E74C3C" if selected_choice == "default" else selected_choice
-        text_color = "black" if new_color in light_colors else "white"
+    def apply_theme(self, background_choice):
+        page_color = "#E74C3C" if background_choice == "default" else background_choice
+        text_color = "black" if page_color in self.light_colors else "white"
 
-        # Update this screen and save the color for the main menu.
-        window.configure(bg=new_color)
-        title_label.configure(bg=new_color, fg=text_color)
-        settings_row.configure(bg=new_color)
-        section_label.configure(bg=new_color, fg=text_color)
-        color_frame.configure(bg=new_color)
-        set_background_color(selected_choice)
+        self.configure(bg=page_color)
+        self.title_label.configure(bg=page_color, fg=text_color)
+        self.settings_row.configure(bg=page_color)
+        self.section_label.configure(bg=page_color, fg=text_color)
+        self.color_frame.configure(bg=page_color)
 
-    for choice_value, square_colors in color_choices:
-        # Each colored square is also the clickable radio button.
-        square_image = make_color_square(square_colors)
-        color_option = tk.Radiobutton(
-            color_frame,
-            image=square_image,
-            variable=selected_color,
-            value=choice_value,
-            command=change_color,
-            indicatoron=False,
-            bg="#B0B0B0",
-            activebackground="#B0B0B0",
-            selectcolor="#707070",
-            relief="raised",
-            bd=3,
-            highlightthickness=0,
-            padx=0,
-            pady=0,
-            cursor="hand2"
-        )
-        color_option.pack(side="left", padx=10)
-        # Keep the image available while this screen is open.
-        color_option.image = square_image
+    def change_color(self):
+        selected_choice = self.selected_color.get()
+        self.apply_theme(selected_choice)
+        # Save the chosen color so other screens can reuse it.
+        self.controller.set_background_color(selected_choice)
 
-    back_button = tk.Button(
-        window,
-        text="Back",
-        command=show_menu,
-        font=("Arial", 16, "bold"),
-        width=12
-    )
-    back_button.pack(pady=30)
+    def on_show(self):
+        self.selected_color.set(self.controller.background_color)
+        self.apply_theme(self.controller.background_color)
