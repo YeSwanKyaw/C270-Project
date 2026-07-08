@@ -138,7 +138,7 @@ class GameEngine:
                 self.board[lost_tile] = None
                 tile_lost = True
 
-        self.switch_turn()
+        
         return tile_lost
 
     def check_win_condition(self, player: int) -> bool:
