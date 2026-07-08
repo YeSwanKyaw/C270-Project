@@ -75,7 +75,8 @@ def _receive_messages(on_status, on_message):
             on_status("Host disconnected", False)
 
 
-def send_message(message):
+# ==================== START OF NAME SETTINGS ====================
+def send_message(message, sender="Player 2"):
     """Send a test message from Player 2."""
     if client_socket is None:
         return False
@@ -83,8 +84,21 @@ def send_message(message):
     try:
         send_json(
             client_socket,
-            {"type": "test_message", "sender": "Player 2", "message": message}
+            {"type": "test_message", "sender": sender, "message": message}
         )
+        return True
+    except OSError:
+        return False
+# ===================== END OF NAME SETTINGS =====================
+
+
+def send_data(data):
+    """Send a game-state message to the host."""
+    if client_socket is None:
+        return False
+
+    try:
+        send_json(client_socket, data)
         return True
     except OSError:
         return False

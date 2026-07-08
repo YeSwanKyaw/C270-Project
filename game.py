@@ -112,19 +112,23 @@ class MultiplayerScreen(tk.Frame):
 
     def safely_update_status(self, text, connected=False):
         # Network threads schedule all Tkinter changes on the main thread.
-        self.controller.after(
-            0,
-            lambda: self.update_status(text, connected) if self.screen_active else None
-        )
+        def update_screen():
+            if not self.screen_active:
+                return
+            self.update_status(text, connected)
+            if connected:
+                self.screen_active = False
+                self.controller.show_frame("MultiGame", role=self.current_role)
+
+        self.controller.after(0, update_screen)
 
     def safely_show_message(self, data):
         def show_message():
-            if not self.screen_active:
-                return
-
-            if data.get("type") == "test_message":
+            if self.screen_active and data.get("type") == "test_message":
                 sender = data.get("sender", "Other player")
                 self.add_message(sender + ": " + data.get("message", ""))
+            else:
+                self.controller.frames["MultiGame"].handle_network_message(data)
 
         self.controller.after(0, show_message)
 
@@ -145,13 +149,14 @@ class MultiplayerScreen(tk.Frame):
 
         ip_label = tk.Label(
             self.details_frame,
-            text="You are Player 1\nHost IP: " + result,
+            text=f"{self.controller.player_stats.name} is Player 1\nHost IP: {result}",
             font=("Arial", 16, "bold"),
             bg="#F39C12",
             fg="white"
         )
         ip_label.pack()
         self.update_status("Waiting for Player 2...")
+        self.controller.apply_theme(self)
 
     def connect_to_host(self, ip_entry):
         host_ip = ip_entry.get().strip()
@@ -181,6 +186,7 @@ class MultiplayerScreen(tk.Frame):
         connect_button.pack(side="left", padx=5)
         self.update_status("Enter the host IP address")
         ip_entry.focus_set()
+        self.controller.apply_theme(self)
 
     def send_test_message(self):
         message = self.message_entry.get().strip()

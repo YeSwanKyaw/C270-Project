@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+import uuid
 
 import requests
 
@@ -25,16 +26,22 @@ class GamemodeSelect(tk.Frame):
             ("Smart AI (Gemini)", "ai", "#3498DB"),
         ]
 
+        button_row = tk.Frame(self, bg="#7CB342")
+        button_row.pack(pady=30)
+
         for text, mode, color in mode_buttons:
             tk.Button(
-                self,
+                button_row,
                 text=text,
                 command=lambda m=mode: self.start_match(m),
                 font=("Arial", 16, "bold"),
                 width=20,
+                height=14,
                 bg=color,
-                fg="white"
-            ).pack(pady=10)
+                fg="white",
+                anchor="n",
+                pady=22
+            ).pack(side="left", padx=20)
 
         back_button = tk.Button(
             self,
@@ -55,6 +62,19 @@ class GamemodeSelect(tk.Frame):
             response = requests.post(GAMEMODE_API_URL, json={"mode": mode}, timeout=5)
             response.raise_for_status()
         except requests.RequestException as error:
+            # ==================== START OF DUMMY AREA ====================
+            # CPU mode can run locally when the separate Flask bot server is
+            # unavailable.  This keeps the GUI usable during development.
+            if mode == "cpu":
+                self.controller.active_match = {
+                    "match_id": "dummy-" + uuid.uuid4().hex,
+                    "mode": "cpu",
+                    "dummy": True,
+                }
+                self.controller.show_frame("GameBoard")
+                return
+            # ===================== END OF DUMMY AREA =====================
+
             messagebox.showerror(
                 "Bot server unavailable",
                 f"Could not reach the gamemode server (is gamemode.py running?): {error}",

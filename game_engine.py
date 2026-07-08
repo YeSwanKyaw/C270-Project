@@ -51,6 +51,10 @@ class GameEngine:
         }
         self.active_player: int = 1
         self.skips: Dict[int, int] = {1: STARTING_SKIPS, 2: STARTING_SKIPS}
+        # ==================== START OF GAME SETTINGS ====================
+        self.tile_loss_chance = TILE_LOSS_CHANCE
+        self.overclock_bonus_chance = OVERCLOCK_BONUS_CHANCE
+        # ===================== END OF GAME SETTINGS =====================
 
     def reset_game(self) -> None:
         """Reinitializes the board, active player, and skips for a new
@@ -99,7 +103,9 @@ class GameEngine:
 
         self.board[(row, col)] = self.active_player
 
-        if random.random() < OVERCLOCK_BONUS_CHANCE:
+        # ==================== START OF GAME SETTINGS ====================
+        if random.random() < self.overclock_bonus_chance:
+        # ===================== END OF GAME SETTINGS =====================
             empty_neighbors = [
                 neighbor
                 for neighbor in self.get_adjacent_coordinates(row, col)
@@ -129,7 +135,9 @@ class GameEngine:
         if used_skip:
             if self.skips[player] > 0:
                 self.skips[player] -= 1
-        elif random.random() < TILE_LOSS_CHANCE:
+        # ==================== START OF GAME SETTINGS ====================
+        elif random.random() < self.tile_loss_chance:
+        # ===================== END OF GAME SETTINGS =====================
             owned_tiles = [
                 coord for coord, owner in self.board.items() if owner == player
             ]

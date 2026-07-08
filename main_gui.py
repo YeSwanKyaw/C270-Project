@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import random
 import json
+from pathlib import Path
 import threading
 import requests
 import game_engine
@@ -10,7 +11,9 @@ GET_BOT_MOVE_URL = "http://127.0.0.1:5050/api/get_bot_move"
 
 class QuestionPopup:
     """Handles the Tkinter popup, the ticking timer, and the skip button."""
-    def __init__(self, parent, question_data, player, skips_left, callback):
+    # ==================== START OF TIMER SETTINGS ====================
+    def __init__(self, parent, question_data, player, skips_left, callback, timer_seconds=15):
+    # ===================== END OF TIMER SETTINGS =====================
         self.top = tk.Toplevel(parent)
         self.top.title(f"Player {player} - Answer to Conquer!")
         self.top.geometry("350x250")
@@ -19,7 +22,9 @@ class QuestionPopup:
         
         self.callback = callback
         self.correct_answer = question_data["answer"].lower()
-        self.time_left = 15  # 15 seconds per turn
+        # ==================== START OF TIMER SETTINGS ====================
+        self.time_left = timer_seconds
+        # ===================== END OF TIMER SETTINGS =====================
         self.timer_active = True
         
         # Timer Display
@@ -112,12 +117,31 @@ class GameBoard(tk.Frame):
     def on_show(self):
         """Resets the board for a fresh match each time this frame is shown."""
         self.engine.reset_game()
+        # ==================== START OF SKIP SETTINGS ====================
+        if self.controller.active_match and self.controller.active_match.get("mode") == "cpu":
+            self.engine.skips[1] = self.controller.cpu_skips
+        # ===================== END OF SKIP SETTINGS =====================
+        # ==================== START OF GAME SETTINGS ====================
+        if self.controller.active_match and self.controller.active_match.get("mode") == "cpu":
+            chance_settings = {
+                "safe": (0.0, 0.0),
+                "normal": (game_engine.OVERCLOCK_BONUS_CHANCE, game_engine.TILE_LOSS_CHANCE),
+                "chaos": (1.0, 1.0),
+            }
+            bonus_chance, loss_chance = chance_settings[self.controller.cpu_chance_mode]
+            self.engine.overclock_bonus_chance = bonus_chance
+            self.engine.tile_loss_chance = loss_chance
+        else:
+            self.engine.overclock_bonus_chance = game_engine.OVERCLOCK_BONUS_CHANCE
+            self.engine.tile_loss_chance = game_engine.TILE_LOSS_CHANCE
+        # ===================== END OF GAME SETTINGS =====================
         self.active_deck = list(self.master_question_bank)
         random.shuffle(self.active_deck)
         self.sync_board_and_ui()
 
     def load_questions(self):
-        with open("questions.json", "r") as f:
+        questions_path = Path(__file__).with_name("questions.json")
+        with questions_path.open("r", encoding="utf-8") as f:
             self.master_question_bank = json.load(f)
 
         self.active_deck = list(self.master_question_bank)
@@ -135,8 +159,22 @@ class GameBoard(tk.Frame):
             random.shuffle(self.active_deck)
 
         question_data = self.active_deck.pop()
-        QuestionPopup(self.controller, question_data, current_player, skips_left,
-                      lambda is_correct, used_skip, timeout: self.resolve_turn(is_correct, used_skip, timeout, row, col))
+        # ==================== START OF TIMER SETTINGS ====================
+        timer_seconds = 15
+        if self.controller.active_match and self.controller.active_match.get("mode") == "cpu":
+            timer_seconds = self.controller.question_timer
+
+        QuestionPopup(
+            self.controller,
+            question_data,
+            current_player,
+            skips_left,
+            lambda is_correct, used_skip, timeout: self.resolve_turn(
+                is_correct, used_skip, timeout, row, col
+            ),
+            timer_seconds=timer_seconds,
+        )
+        # ===================== END OF TIMER SETTINGS =====================
 
     def resolve_turn(self, is_correct, used_skip, timeout, row, col):
         current_player = self.engine.active_player
@@ -193,6 +231,16 @@ class GameBoard(tk.Frame):
         mode = self.controller.active_match.get("mode", "ai")
         board_snapshot = self.board_to_flat_list()
         self.disable_all_buttons()
+
+        # ==================== START OF DUMMY AREA ====================
+        # When CPU mode was started without the Flask server, choose a legal
+        # local move so the rest of the game can still be demonstrated.
+        if self.controller.active_match.get("dummy"):
+            empty_moves = [index for index, value in enumerate(board_snapshot) if not value]
+            dummy_move = random.choice(empty_moves) if empty_moves else None
+            self.controller.after(350, lambda: self.apply_bot_move({"move": dummy_move}))
+            return
+        # ===================== END OF DUMMY AREA =====================
 
         def call_server():
             try:
@@ -295,11 +343,21 @@ class GameBoard(tk.Frame):
             btn = self.buttons[(r, c)]
             
             if owner == 1:
-                btn.config(text="P1", bg="#add8e6", state="disabled")
+                # ==================== START OF TILE COLOR SETTINGS ====================
+                tile_color = self.controller.player_tile_color
+                text_color = "white" if tile_color == "#000000" else "black"
+                btn.config(text="P1", bg=tile_color, fg=text_color, state="disabled")
+                # ===================== END OF TILE COLOR SETTINGS =====================
             elif owner == 2:
-                btn.config(text="P2", bg="#f08080", state="disabled")
+                # ==================== START OF TILE COLOR SETTINGS ====================
+                tile_color = self.controller.opponent_tile_color
+                text_color = "white" if tile_color == "#000000" else "black"
+                btn.config(text="P2", bg=tile_color, fg=text_color, state="disabled")
+                # ===================== END OF TILE COLOR SETTINGS =====================
             else:
                 btn.config(text="", bg="SystemButtonFace", state="normal")
+
+        self.controller.apply_theme(self)
 
     def disable_all_buttons(self):
         for btn in self.buttons.values():
