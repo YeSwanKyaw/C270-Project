@@ -1,29 +1,24 @@
 from flask import Flask, request, jsonify
-import random
-import requests
-import os
 import itertools
+import os
+import random
+import re
 import threading
+
+import requests
 
 app = Flask(__name__)
 
 # --- Config -----------------------------------------------------------
-# Fail loudly if the key is missing instead of silently shipping a
-# placeholder string that will 401 on every real request.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_URL = (
-    f"https://generativelanguage.googleapis.com/v1beta/models/"
-    f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 GRID_SIZE = 5
 WIN_LENGTH = 4
 
-# In-memory "database". A dict keyed by an ever-incrementing counter
-# (not len(GAMES_DB)+1, which collides once a game is ever removed).
 GAMES_DB = {}
 _id_counter = itertools.count(1)
-_db_lock = threading.Lock()  # Flask's dev server can be multi-threaded
+_db_lock = threading.Lock()
 
 
 # --- Win detection ------------------------------------------------------
@@ -36,22 +31,18 @@ def _winning_lines():
     def idx(r, c):
         return r * n + c
 
-    # Horizontal
     for r in range(n):
         for c in range(n - WIN_LENGTH + 1):
             lines.append([idx(r, c + k) for k in range(WIN_LENGTH)])
 
-    # Vertical
     for c in range(n):
         for r in range(n - WIN_LENGTH + 1):
             lines.append([idx(r + k, c) for k in range(WIN_LENGTH)])
 
-    # Diagonal (down-right)
     for r in range(n - WIN_LENGTH + 1):
         for c in range(n - WIN_LENGTH + 1):
             lines.append([idx(r + k, c + k) for k in range(WIN_LENGTH)])
 
-    # Diagonal (down-left)
     for r in range(n - WIN_LENGTH + 1):
         for c in range(WIN_LENGTH - 1, n):
             lines.append([idx(r + k, c - k) for k in range(WIN_LENGTH)])
@@ -71,50 +62,167 @@ def check_winner(board_state):
     return None
 
 
-# --- Gemini opponent ------------------------------------------------------
-def get_gemini_strategic_move(board_state):
-    """Fires a live API request to Google Gemini to calculate the best
-    5x5 strategic grid move. Returns an int index or None on any failure."""
-    if not GEMINI_API_KEY:
-        print("GEMINI_API_KEY not set, skipping API call.")
+def empty_cells(board_state):
+    return [i for i, cell in enumerate(board_state) if cell == ""]
+
+
+# --- CPU opponent (rule-based if/else) ----------------------------------
+def _line_move(board_state, empty, mark, target_count, open_count=0):
+    """Return a winning/blocking cell if `mark` has `target_count` on a line
+  with `open_count` empty cells (used for win-now and block-now rules)."""
+    for line in WINNING_LINES:
+        values = [board_state[i] for i in line]
+        if values.count(mark) == target_count and values.count("") == open_count + 1:
+            for i in line:
+                if board_state[i] == "" and i in empty:
+                    return i
+    return None
+
+
+def _best_extension(board_state, empty, mark):
+    """Prefer moves that extend the longest existing run of `mark`."""
+    opponent = "X" if mark == "O" else "O"
+    best_index = None
+    best_score = -1
+
+    for cell in empty:
+        score = 0
+        for line in WINNING_LINES:
+            if cell not in line:
+                continue
+            values = [board_state[i] for i in line]
+            if opponent in values:
+                continue
+            if all(v in (mark, "") for v in values):
+                score = max(score, values.count(mark))
+        if score > best_score:
+            best_score = score
+            best_index = cell
+
+    return best_index
+
+
+def get_cpu_move(board_state):
+    """Classic rule-based opponent: explicit if/else priorities, no ML."""
+    empty = empty_cells(board_state)
+    if not empty:
         return None
 
-    prompt = f"""
-    You are playing a competitive 5x5 Tic-Tac-Toe variant. The grid has 25 spaces indexed from 0 to 24.
-    Player 1 uses 'X' and you (the AI) use 'O'. An empty space is represented by an empty string "".
+    # 1. Win immediately
+    move = _line_move(board_state, empty, "O", WIN_LENGTH - 1)
+    if move is not None:
+        return move
 
-    Current Board Array State: {board_state}
+    # 2. Block opponent win
+    move = _line_move(board_state, empty, "X", WIN_LENGTH - 1)
+    if move is not None:
+        return move
 
-    Analyze the grid layout carefully. Your goal is to block 'X' from getting a row of 4,
-    or build your own row of 4 'O's.
-    Identify the remaining empty indices (where the value is "").
-    Pick the absolute best empty index to make your move.
+    # 3. Build a 3-in-a-row threat
+    move = _line_move(board_state, empty, "O", WIN_LENGTH - 2)
+    if move is not None:
+        return move
 
-    CRITICAL: Reply with ONLY the single integer index number (0 to 24). Do not write any words, punctuation, or explanations. Just the number.
-    """
+    # 4. Block opponent 3-in-a-row
+    move = _line_move(board_state, empty, "X", WIN_LENGTH - 2)
+    if move is not None:
+        return move
 
-    headers = {"Content-Type": "application/json"}
+    # 5. Extend the strongest existing line
+    move = _best_extension(board_state, empty, "O")
+    if move is not None:
+        return move
+
+    # 6. Take center, then corners, then anything left
+    center = (GRID_SIZE * GRID_SIZE) // 2
+    if center in empty:
+        return center
+
+    corners = [0, GRID_SIZE - 1, GRID_SIZE * (GRID_SIZE - 1), GRID_SIZE * GRID_SIZE - 1]
+    for corner in corners:
+        if corner in empty:
+            return corner
+
+    return random.choice(empty)
+
+
+# --- AI opponent (trained model via API) --------------------------------
+def _gemini_url():
+    return (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    )
+
+
+def _parse_move_index(text, valid_cells):
+    """Gemini may add extra words; extract the first valid board index."""
+    for match in re.finditer(r"\b(\d+)\b", text):
+        index = int(match.group(1))
+        if index in valid_cells:
+            return index
+    return None
+
+
+def get_ai_move(board_state):
+    """Calls a hosted LLM (Gemini). Returns (index, source_label)."""
+    valid = empty_cells(board_state)
+    if not valid:
+        return None, "none"
+
+    if not GEMINI_API_KEY:
+        return None, "api_key_missing"
+
+    prompt = (
+        "You are playing 5x5 tic-tac-toe where 4 in a row wins.\n"
+        "Board is a length-25 list indexed 0-24 (row-major). "
+        "X is the human, O is you. Empty cells are \"\".\n"
+        f"Board: {board_state}\n"
+        f"Legal moves: {valid}\n"
+        "Reply with ONE legal index only (0-24). No explanation."
+    )
+
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
     try:
-        response = requests.post(GEMINI_URL, json=payload, headers=headers, timeout=5)
+        response = requests.post(
+            _gemini_url(),
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=8,
+        )
         response.raise_for_status()
-        ai_reply = response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-        return int(ai_reply)
-    except (requests.RequestException, KeyError, IndexError, ValueError) as e:
-        print(f"API Error, falling back to basic CPU logic: {e}")
-        return None
+        text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        move = _parse_move_index(text, set(valid))
+        if move is None:
+            return None, "api_invalid_response"
+        return move, "gemini_api"
+    except (requests.RequestException, KeyError, IndexError, ValueError) as exc:
+        print(f"Gemini API error: {exc}")
+        return None, "api_error"
+
+
+def choose_opponent_move(mode, board_state):
+    """Single entry point used by the game loop."""
+    if mode == "cpu":
+        return get_cpu_move(board_state), "cpu_rules"
+    if mode == "ai":
+        return get_ai_move(board_state)
+    return None, "human"
 
 
 # --- Routes ---------------------------------------------------------------
 @app.route("/api/start_match", methods=["POST"])
 def start_match():
-    """Initializes a 5x5 match based on the selected game mode."""
     data = request.get_json(silent=True) or {}
     mode = data.get("mode")
 
     if mode not in ("local", "cpu", "ai"):
         return jsonify({"error": "mode must be 'local', 'cpu', or 'ai'"}), 400
+
+    if mode == "ai" and not GEMINI_API_KEY:
+        return jsonify({
+            "error": "AI mode requires GEMINI_API_KEY to be set in the environment."
+        }), 503
 
     with _db_lock:
         game_id = next(_id_counter)
@@ -122,19 +230,26 @@ def start_match():
             "game_id": game_id,
             "mode": mode,
             "player_1": "Player 1",
-            "player_2": "Smart_AI" if mode == "ai" else ("CPU_Bot" if mode == "cpu" else "Player 2"),
+            "player_2": (
+                "Gemini_AI" if mode == "ai"
+                else "CPU_Bot" if mode == "cpu"
+                else "Player 2"
+            ),
             "board_state": [""] * (GRID_SIZE * GRID_SIZE),
             "current_turn": "P1",
             "status": "Active",
             "winner": None,
         }
 
-    return jsonify({"game_id": game_id, "message": f"Started {mode} match successfully!"}), 201
+    return jsonify({
+        "game_id": game_id,
+        "message": f"Started {mode} match successfully!",
+        "opponent": GAMES_DB[game_id]["player_2"],
+    }), 201
 
 
 @app.route("/api/submit_move", methods=["POST"])
 def submit_move():
-    """Processes human grid selections and routes automated opponent behaviors."""
     data = request.get_json(silent=True) or {}
     game_id = data.get("game_id")
     player = data.get("player")
@@ -151,19 +266,16 @@ def submit_move():
     if game["current_turn"] != player:
         return jsonify({"error": "It is not your turn!"}), 403
 
-    # Validate cell_index: must be an int in range. (Also blocks negative
-    # indices, which Python would otherwise silently wrap around to the
-    # end of the list.)
     if not isinstance(cell_index, int) or not (0 <= cell_index < GRID_SIZE * GRID_SIZE):
-        return jsonify({"error": f"cell_index must be an integer from 0 to {GRID_SIZE*GRID_SIZE - 1}"}), 400
+        return jsonify({
+            "error": f"cell_index must be an integer from 0 to {GRID_SIZE * GRID_SIZE - 1}"
+        }), 400
 
     if game["board_state"][cell_index] != "":
         return jsonify({"error": "Space already conquered!"}), 400
 
-    # Human places their mark
     game["board_state"][cell_index] = "X" if player == "P1" else "O"
 
-    # Check for a win immediately after the human's move
     winner = check_winner(game["board_state"])
     if winner:
         game["status"] = "Finished"
@@ -174,30 +286,30 @@ def submit_move():
             "winner": winner,
         }), 200
 
-    empty_cells = [i for i, cell in enumerate(game["board_state"]) if cell == ""]
-    if not empty_cells:
+    if not empty_cells(game["board_state"]):
         game["status"] = "Draw"
         return jsonify({"message": "Game ended in a draw!", "board_state": game["board_state"]}), 200
 
-    # -------------------------------------------------------------
-    # Game Mode Switching Logic Branch
-    # -------------------------------------------------------------
-    if game["mode"] == "ai" and game["current_turn"] == "P1":
-        ai_move = get_gemini_strategic_move(game["board_state"])
-        if ai_move is not None and ai_move in empty_cells:
-            game["board_state"][ai_move] = "O"
-        else:
-            game["board_state"][random.choice(empty_cells)] = "O"
-        game["current_turn"] = "P1"
+    opponent_payload = {}
+    if game["mode"] in ("cpu", "ai") and game["current_turn"] == "P1":
+        move, source = choose_opponent_move(game["mode"], game["board_state"])
+        valid = empty_cells(game["board_state"])
 
-    elif game["mode"] == "cpu" and game["current_turn"] == "P1":
-        game["board_state"][random.choice(empty_cells)] = "O"
-        game["current_turn"] = "P1"
+        if move is None or move not in valid:
+            if game["mode"] == "ai":
+                return jsonify({
+                    "error": "AI opponent could not produce a valid move.",
+                    "ai_source": source,
+                    "board_state": game["board_state"],
+                }), 502
+            move = get_cpu_move(game["board_state"])
 
+        game["board_state"][move] = "O"
+        game["current_turn"] = "P1"
+        opponent_payload = {"opponent_move": move, "opponent_source": source}
     else:
         game["current_turn"] = "P2" if game["current_turn"] == "P1" else "P1"
 
-    # Check for a win after the AI/CPU move too
     winner = check_winner(game["board_state"])
     if winner:
         game["status"] = "Finished"
@@ -206,16 +318,22 @@ def submit_move():
             "message": f"Player {winner} wins!",
             "board_state": game["board_state"],
             "winner": winner,
+            **opponent_payload,
         }), 200
 
-    if not any(cell == "" for cell in game["board_state"]):
+    if not empty_cells(game["board_state"]):
         game["status"] = "Draw"
-        return jsonify({"message": "Game ended in a draw!", "board_state": game["board_state"]}), 200
+        return jsonify({
+            "message": "Game ended in a draw!",
+            "board_state": game["board_state"],
+            **opponent_payload,
+        }), 200
 
     return jsonify({
         "message": "Move processed successfully!",
         "board_state": game["board_state"],
         "next_turn": game["current_turn"],
+        **opponent_payload,
     }), 200
 
 
