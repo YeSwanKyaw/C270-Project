@@ -62,5 +62,9 @@ class GamemodeSelect(tk.Frame):
             )
             return
 
-        self.controller.active_match = response.json()
+        # /api/start_match's response doesn't echo back "mode", so record
+        # it here - main_gui.py needs it to ask for cpu vs. ai bot moves.
+        match_info = response.json()
+        match_info["mode"] = mode
+        self.controller.active_match = match_info
         self.controller.show_frame("GameBoard")

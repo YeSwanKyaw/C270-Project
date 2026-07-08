@@ -2,7 +2,11 @@ import tkinter as tk
 from tkinter import messagebox
 import random
 import json
+import threading
+import requests
 import game_engine
+
+GET_BOT_MOVE_URL = "http://127.0.0.1:5050/api/get_bot_move"
 
 class QuestionPopup:
     """Handles the Tkinter popup, the ticking timer, and the skip button."""
@@ -158,6 +162,99 @@ class GameBoard(tk.Frame):
             messagebox.showinfo("Victory!", f"Player {current_player} wins with 4-in-a-row!", parent=self.controller)
             self.disable_all_buttons()
             self.record_match_result(winner=current_player)
+            self.controller.show_frame("StatsScreen")
+            return
+
+        if self.engine.is_board_full():
+            self.sync_board_and_ui()
+            winner = self.engine.get_territory_winner()
+            if winner == 0:
+                messagebox.showinfo("Game Over", "It's a complete tie!", parent=self.controller)
+            else:
+                messagebox.showinfo("Game Over", f"Board full! Player {winner} wins by territory control!", parent=self.controller)
+            self.disable_all_buttons()
+            self.record_match_result(winner=winner)
+            self.controller.show_frame("StatsScreen")
+            return
+
+        self.engine.switch_turn()
+        self.sync_board_and_ui()
+        self.trigger_bot_turn()
+
+    def trigger_bot_turn(self):
+        """Runs whenever it becomes Player 2's turn in a VS Bot match.
+        self.engine.board is the single source of truth - we snapshot it
+        into gamemode.py's flat "X"/"O" format and ask its stateless
+        /api/get_bot_move endpoint where to play, off the Tk main thread
+        so Gemini's response time doesn't freeze the UI."""
+        if not self.controller.active_match or self.engine.active_player != 2:
+            return
+
+        mode = self.controller.active_match.get("mode", "ai")
+        board_snapshot = self.board_to_flat_list()
+        self.disable_all_buttons()
+
+        def call_server():
+            try:
+                response = requests.post(
+                    GET_BOT_MOVE_URL,
+                    json={"board_state": board_snapshot, "mode": mode},
+                    timeout=20,
+                )
+                response.raise_for_status()
+                data = response.json()
+            except requests.RequestException as error:
+                err_msg = str(error)
+                self.controller.after(0, lambda msg=err_msg: self.handle_bot_error(msg))
+                return
+
+            self.controller.after(0, lambda: self.apply_bot_move(data))
+
+        threading.Thread(target=call_server, daemon=True).start()
+
+    def board_to_flat_list(self):
+        """Converts engine.board's (row, col) -> owner dict into the flat,
+        row-major "X"/"O"/"" list gamemode.py's move logic expects."""
+        flat = []
+        for r in range(game_engine.BOARD_SIZE):
+            for c in range(game_engine.BOARD_SIZE):
+                owner = self.engine.board[(r, c)]
+                flat.append("X" if owner == 1 else "O" if owner == 2 else "")
+        return flat
+
+    def handle_bot_error(self, error):
+        messagebox.showerror(
+            "Bot server unavailable",
+            f"Could not reach the gamemode server for the bot's move: {error}",
+            parent=self.controller
+        )
+        self.sync_board_and_ui()  # re-enables the board so the match isn't stuck
+
+    def apply_bot_move(self, data):
+        move = data.get("move")
+
+        if move is None or not (0 <= move < game_engine.BOARD_SIZE * game_engine.BOARD_SIZE):
+            self.handle_bot_error(data.get("error", "invalid move returned"))
+            return
+
+        bot_row, bot_col = divmod(move, game_engine.BOARD_SIZE)
+
+        if self.engine.board[(bot_row, bot_col)] is not None:
+            # Shouldn't happen since the snapshot is authoritative, but fall
+            # back to any empty tile rather than dropping the bot's turn.
+            empty = [coord for coord, owner in self.engine.board.items() if owner is None]
+            if not empty:
+                self.sync_board_and_ui()
+                return
+            bot_row, bot_col = random.choice(empty)
+
+        self.engine.claim_space(bot_row, bot_col)
+
+        if self.engine.check_win_condition(2):
+            self.sync_board_and_ui()
+            messagebox.showinfo("Victory!", "Player 2 (Bot) wins with 4-in-a-row!", parent=self.controller)
+            self.disable_all_buttons()
+            self.record_match_result(winner=2)
             self.controller.show_frame("StatsScreen")
             return
 
