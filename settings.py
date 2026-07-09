@@ -74,7 +74,7 @@ class SettingsScreen(tk.Frame):
 
         self.player_tile_label = tk.Label(
             self.settings_row,
-            text="Player Tile Color",
+            text="Player 1 Tile Color",
             font=("Arial", 18, "bold"),
             width=20,
             anchor="e",
@@ -115,7 +115,7 @@ class SettingsScreen(tk.Frame):
 
         self.opponent_tile_label = tk.Label(
             self.settings_row,
-            text="Opponent Tile Color",
+            text="Player 2 Tile Color",
             font=("Arial", 18, "bold"),
             width=20,
             anchor="e",
