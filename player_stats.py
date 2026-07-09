@@ -41,21 +41,57 @@ class StatsScreen(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        title = tk.Label(self, text="PLAYER STATISTICS", font=("Arial", 20, "bold"))
-        title.pack(pady=20)
+        tk.Label(
+            self,
+            text="PLAYER STATISTICS",
+            font=("Arial", 18, "bold")
+        ).pack(pady=15)
 
-        self.stats_label = tk.Label(self, font=("Arial", 14), justify="left")
-        self.stats_label.pack(pady=20)
+        self.table = tk.Frame(self)
+        self.table.pack(pady=10)
+
+        self.values = {}
+
+        fields = [
+            "Player Name",
+            "Games Played",
+            "Wins",
+            "Losses",
+            "Win Rate",
+            "Local Mode Wins",
+            "AI Mode Wins",
+            "Total Spaces Captured"
+        ]
+
+        for row, field in enumerate(fields):
+            tk.Label(
+                self.table,
+                text=field + ":",
+                font=("Arial", 12, "bold"),
+                width=22,
+                anchor="w"
+            ).grid(row=row, column=0, padx=10, pady=5, sticky="w")
+
+            value = tk.Label(
+                self.table,
+                text="",
+                font=("Arial", 12),
+                width=18,
+                anchor="w"
+            )
+            value.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+
+            self.values[field] = value
 
         button_row = tk.Frame(self)
-        button_row.pack(pady=10)
+        button_row.pack(pady=20)
 
-        tk.Button(button_row, text="Refresh Stats", command=self.refresh).pack(side="left", padx=5)
         tk.Button(
             button_row,
             text="Back",
+            width=15,
             command=lambda: controller.show_frame("MainMenu")
-        ).pack(side="left", padx=5)
+        ).pack(side="left", padx=10)
 
     def on_show(self):
         self.refresh()
@@ -63,37 +99,11 @@ class StatsScreen(tk.Frame):
     def refresh(self):
         player = self.controller.player_stats
 
-        text = f"""
-Player Name:
-{player.name}
-
-
-Games Played:
-{player.games_played}
-
-
-Wins:
-{player.wins}
-
-
-Losses:
-{player.losses}
-
-
-Win Rate:
-{player.get_win_rate():.2f}%
-
-
-Local Mode Wins:
-{player.local_wins}
-
-
-AI Mode Wins:
-{player.ai_wins}
-
-
-Total Spaces Captured:
-{player.total_spaces}
-        """
-
-        self.stats_label.config(text=text)
+        self.values["Player Name"].config(text=player.name)
+        self.values["Games Played"].config(text=player.games_played)
+        self.values["Wins"].config(text=player.wins)
+        self.values["Losses"].config(text=player.losses)
+        self.values["Win Rate"].config(text=f"{player.get_win_rate():.2f}%")
+        self.values["Local Mode Wins"].config(text=player.local_wins)
+        self.values["AI Mode Wins"].config(text=player.ai_wins)
+        self.values["Total Spaces Captured"].config(text=player.total_spaces)

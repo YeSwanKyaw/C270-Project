@@ -200,7 +200,7 @@ class GameBoard(tk.Frame):
             messagebox.showinfo("Victory!", f"Player {current_player} wins with 4-in-a-row!", parent=self.controller)
             self.disable_all_buttons()
             self.record_match_result(winner=current_player)
-            self.controller.show_frame("StatsScreen")
+            self.controller.show_frame("MainMenu")
             return
 
         if self.engine.is_board_full():
@@ -212,7 +212,7 @@ class GameBoard(tk.Frame):
                 messagebox.showinfo("Game Over", f"Board full! Player {winner} wins by territory control!", parent=self.controller)
             self.disable_all_buttons()
             self.record_match_result(winner=winner)
-            self.controller.show_frame("StatsScreen")
+            self.controller.show_frame("MainMenu")
             return
 
         self.engine.switch_turn()
@@ -303,7 +303,7 @@ class GameBoard(tk.Frame):
             messagebox.showinfo("Victory!", "Player 2 (Bot) wins with 4-in-a-row!", parent=self.controller)
             self.disable_all_buttons()
             self.record_match_result(winner=2)
-            self.controller.show_frame("StatsScreen")
+            self.controller.show_frame("MainMenu")
             return
 
         if self.engine.is_board_full():
