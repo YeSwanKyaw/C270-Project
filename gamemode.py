@@ -169,20 +169,20 @@ def get_ai_move(board_state):
     if not valid:
         return None, "none"
 
-    if not GROQ_API_KEY:
+    if not GROQ_API_KEY or _groq_client is None:
         return None, "api_key_missing"
 
     system_prompt = (
         "You are a competitive 5x5 tic-tac-toe engine where 4 in a row wins. "
-        "You must respond with ONLY a single integer - the board index you "
-        "choose. No words, no punctuation, no explanation. Just the number."
+        "You must respond with ONLY a single integer from the Legal moves list. "
+        "Never choose an occupied cell. No words, no punctuation, no explanation."
     )
     user_prompt = (
         "Board is a length-25 list indexed 0-24 (row-major). "
         "X is the human, O is you. Empty cells are \"\".\n"
         f"Board: {board_state}\n"
         f"Legal moves: {valid}\n"
-        "Reply with ONE legal index only (0-24)."
+        f"CRITICAL: Reply with ONE number from this list only: {valid}"
     )
 
     max_attempts = 3
@@ -199,12 +199,16 @@ def get_ai_move(board_state):
                 ],
                 temperature=0,
                 max_tokens=8,
-                timeout=10,  # fail fast per attempt; retries add the buffer instead
+                timeout=10,
             )
             text = response.choices[0].message.content
             move = _parse_move_index(text, set(valid))
             if move is None:
-                return None, "api_invalid_response"
+                print(f"Groq returned invalid move {text!r}, retrying ({attempt}/{max_attempts})...")
+                if attempt < max_attempts:
+                    time.sleep(retry_wait_seconds)
+                    continue
+                break
             return move, "groq_api"
         except groq.APITimeoutError as exc:
             if attempt < max_attempts:
@@ -212,19 +216,24 @@ def get_ai_move(board_state):
                 time.sleep(retry_wait_seconds)
                 continue
             print(f"Groq API error: {exc}")
-            return None, "api_error"
+            break
         except groq.InternalServerError as exc:
             if exc.status_code in retryable_statuses and attempt < max_attempts:
                 print(f"Groq API {exc.status_code}, retrying ({attempt}/{max_attempts})...")
                 time.sleep(retry_wait_seconds)
                 continue
             print(f"Groq API error: {exc}")
-            return None, "api_error"
+            break
         except (groq.APIConnectionError, groq.APIError, KeyError, IndexError, ValueError) as exc:
             print(f"Groq API error: {exc}")
-            return None, "api_error"
+            break
 
-    return None, "api_error"
+    # Keep the match playable if Groq returns occupied/invalid cells.
+    fallback = get_cpu_move(board_state)
+    if fallback is not None:
+        print(f"Falling back to CPU rules, move={fallback}")
+        return fallback, "cpu_fallback"
+    return None, "api_invalid_response"
 
 
 def choose_opponent_move(mode, board_state):
