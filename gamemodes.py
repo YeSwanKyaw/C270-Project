@@ -23,7 +23,7 @@ class GamemodeSelect(tk.Frame):
 
         mode_buttons = [
             ("CPU (rule-based)", "cpu", "#F39C12"),
-            ("Smart AI (Gemini)", "ai", "#3498DB"),
+            ("Smart AI (Groq)", "ai", "#3498DB"),
         ]
 
         button_row = tk.Frame(self, bg="#7CB342")
