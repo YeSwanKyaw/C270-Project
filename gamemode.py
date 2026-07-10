@@ -172,6 +172,8 @@ def get_ai_move(board_state):
     if not GROQ_API_KEY or _groq_client is None:
         return None, "api_key_missing"
 
+    client = _groq_client
+
     system_prompt = (
         "You are a competitive 5x5 tic-tac-toe engine where 4 in a row wins. "
         "You must respond with ONLY a single integer from the Legal moves list. "
@@ -191,7 +193,7 @@ def get_ai_move(board_state):
 
     for attempt in range(1, max_attempts + 1):
         try:
-            response = _groq_client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=GROQ_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -201,7 +203,7 @@ def get_ai_move(board_state):
                 max_tokens=8,
                 timeout=10,
             )
-            text = response.choices[0].message.content
+            text = response.choices[0].message.content or ""
             move = _parse_move_index(text, set(valid))
             if move is None:
                 print(f"Groq returned invalid move {text!r}, retrying ({attempt}/{max_attempts})...")
