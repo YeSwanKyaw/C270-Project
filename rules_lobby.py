@@ -22,7 +22,9 @@ class RulesLobbyFrame(tk.Frame):
         "extra adjacent tile for free.\n"
         "• Skips: 3 skips per match to avoid answering, by default.\n"
         "• Turn Failure Penalty: Answer wrong or run out of time? "
-        "You have a 40% chance to lose a random tile you already own."
+        "You have a 40% chance to lose a random tile you already own.\n"
+        "\n"
+        "These are the rules for Standard Mode"
     )
 
     def __init__(self, parent, controller):

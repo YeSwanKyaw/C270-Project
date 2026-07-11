@@ -1,8 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox
+from pathlib import Path
 import uuid
 
 import requests
+
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    Image = None
+    ImageTk = None
 
 GAMEMODE_API_URL = "http://127.0.0.1:5050/api/start_match"
 
@@ -11,6 +18,7 @@ class GamemodeSelect(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg="#7CB342")
         self.controller = controller
+        self.mode_images = {}
 
         title_label = tk.Label(
             self,
@@ -22,26 +30,37 @@ class GamemodeSelect(tk.Frame):
         title_label.pack(pady=40)
 
         mode_buttons = [
-            ("CPU (rule-based)", "cpu", "#F39C12"),
-            ("Smart AI (Groq)", "ai", "#3498DB"),
+            ("CPU (rule-based)", "cpu", "#F39C12", "Vs Computer Logo.png"),
+            ("Smart AI (Groq)", "ai", "#3498DB", "Vs AI logo.jpg"),
         ]
 
         button_row = tk.Frame(self, bg="#7CB342")
         button_row.pack(pady=30)
 
-        for text, mode, color in mode_buttons:
-            tk.Button(
-                button_row,
-                text=text,
-                command=lambda m=mode: self.start_match(m),
-                font=("Arial", 16, "bold"),
-                width=20,
-                height=14,
-                bg=color,
-                fg="white",
-                anchor="n",
-                pady=22
-            ).pack(side="left", padx=20)
+        for text, mode, color, image_name in mode_buttons:
+            logo = self.load_mode_image(image_name)
+            self.mode_images[mode] = logo
+
+            button_options = {
+                "text": text,
+                "command": lambda m=mode: self.start_match(m),
+                "font": ("Arial", 16, "bold"),
+                "bg": color,
+                "fg": "white",
+                "pady": 18,
+                "cursor": "hand2",
+            }
+            if logo is not None:
+                button_options.update({
+                    "image": logo,
+                    "compound": "top",
+                    "width": 230,
+                    "height": 260,
+                })
+            else:
+                button_options.update({"width": 20, "height": 14})
+
+            tk.Button(button_row, **button_options).pack(side="left", padx=20)
 
         back_button = tk.Button(
             self,
@@ -51,6 +70,16 @@ class GamemodeSelect(tk.Frame):
             width=12
         )
         back_button.pack(pady=30)
+
+    def load_mode_image(self, image_name):
+        if Image is None or ImageTk is None:
+            return None
+
+        asset_path = Path(__file__).resolve().parent / "Assets" / image_name
+        image = Image.open(asset_path)
+        resampling_filter = getattr(Image, "Resampling", Image).LANCZOS
+        image.thumbnail((150, 150), resampling_filter)
+        return ImageTk.PhotoImage(image)
 
     def start_match(self, mode):
         # gamemode.py's Flask API models a plain X/O 4-in-a-row board, while
