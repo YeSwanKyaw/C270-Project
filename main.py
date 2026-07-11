@@ -9,6 +9,7 @@ from gamemodes import GamemodeSelect
 from main_gui import GameBoard
 from multigame import MultiGame
 from player_stats import PlayerStats, StatsScreen
+from rules_lobby import RulesLobbyFrame
 
 
 class AppController(tk.Tk):
@@ -50,6 +51,7 @@ class AppController(tk.Tk):
             SettingsScreen,
             MultiplayerScreen,
             GamemodeSelect,
+            RulesLobbyFrame,
             GameBoard,
             MultiGame,
             StatsScreen,

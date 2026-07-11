@@ -12,8 +12,8 @@ class MainMenu(tk.Frame):
         self.error_label = tk.Label(self, font=("Arial", 15, "bold"), fg="red")
 
         button_details = [
-            ("Multiplayer", lambda: controller.show_frame("MultiplayerScreen"), "#F39C12", "#F5B041"),
-            ("VS BOT", lambda: controller.show_frame("GamemodeSelect"), "#7CB342", "#9CCC65"),
+            ("Multiplayer", lambda: controller.show_frame("RulesLobbyFrame", next_frame="MultiplayerScreen"), "#F39C12", "#F5B041"),
+            ("VS BOT", lambda: controller.show_frame("RulesLobbyFrame", next_frame="GamemodeSelect"), "#7CB342", "#9CCC65"),
             ("Statistics", lambda: controller.show_frame("StatsScreen"), "#3498DB", "#5DADE2"),
             ("Settings", lambda: controller.show_frame("SettingsScreen"), "#E74C3C", "#EC7063"),
         ]
