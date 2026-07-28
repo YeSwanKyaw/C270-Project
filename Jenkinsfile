@@ -1,0 +1,135 @@
+pipeline {
+  agent any
+
+  environment {
+    BOT_IMAGE = 'answer-and-conquer-bot'
+    WEB_IMAGE = 'answer-and-conquer-web'
+    IMAGE_TAG = "${env.BUILD_NUMBER}"
+  }
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Test Python bot') {
+      steps {
+        sh '''
+          python3 -m venv .venv || python -m venv .venv
+          . .venv/bin/activate 2>/dev/null || . .venv/Scripts/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m pytest tests/ -v --junitxml=reports/junit-python.xml
+        '''
+      }
+    }
+
+    stage('Test Node web') {
+      steps {
+        sh '''
+          docker compose up -d mysql || true
+          # Wait for MySQL if compose is available
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            docker compose exec -T mysql mysqladmin ping -h 127.0.0.1 -uaac -paacpass --silent && break
+            sleep 3
+          done || true
+          cd web
+          npm ci || npm install
+          npm test
+        '''
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'reports/junit-*.xml'
+        }
+      }
+    }
+
+    stage('Build Docker Images') {
+      steps {
+        sh """
+          docker build -t ${BOT_IMAGE}:${IMAGE_TAG} -t ${BOT_IMAGE}:latest .
+          docker build -f web/Dockerfile -t ${WEB_IMAGE}:${IMAGE_TAG} -t ${WEB_IMAGE}:latest .
+        """
+      }
+    }
+
+    stage('Push Images') {
+      when {
+        expression { return env.DOCKER_REGISTRY?.trim() }
+      }
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'docker-registry',
+          usernameVariable: 'REG_USER',
+          passwordVariable: 'REG_PASS'
+        )]) {
+          sh """
+            echo "\$REG_PASS" | docker login ${DOCKER_REGISTRY} -u "\$REG_USER" --password-stdin
+            for IMG in ${BOT_IMAGE} ${WEB_IMAGE}; do
+              docker tag \$IMG:${IMAGE_TAG} ${DOCKER_REGISTRY}/\$IMG:${IMAGE_TAG}
+              docker tag \$IMG:latest ${DOCKER_REGISTRY}/\$IMG:latest
+              docker push ${DOCKER_REGISTRY}/\$IMG:${IMAGE_TAG}
+              docker push ${DOCKER_REGISTRY}/\$IMG:latest
+            done
+          """
+        }
+      }
+    }
+
+    stage('Deploy with Ansible') {
+      when {
+        anyOf {
+          branch 'main'
+          branch 'master'
+        }
+      }
+      steps {
+        withCredentials([
+          string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY'),
+          sshUserPrivateKey(
+            credentialsId: 'ansible-ssh-key',
+            keyFileVariable: 'ANSIBLE_SSH_KEY',
+            usernameVariable: 'ANSIBLE_USER'
+          )
+        ]) {
+          sh """
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            REGISTRY_ARG=""
+            if [ -n "\${DOCKER_REGISTRY:-}" ]; then
+              REGISTRY_ARG="-e docker_registry=\${DOCKER_REGISTRY}"
+            fi
+            ansible-playbook \\
+              -i ansible/inventory.ini \\
+              ansible/playbook.yml \\
+              --private-key "\$ANSIBLE_SSH_KEY" \\
+              -u "\$ANSIBLE_USER" \\
+              -e "bot_image=${BOT_IMAGE}:${IMAGE_TAG}" \\
+              -e "web_image=${WEB_IMAGE}:${IMAGE_TAG}" \\
+              -e "groq_api_key=\$GROQ_API_KEY" \\
+              \$REGISTRY_ARG
+          """
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "Pipeline succeeded: bot+web :${IMAGE_TAG}"
+    }
+    failure {
+      echo 'Pipeline failed — check Test / Build / Deploy stages.'
+    }
+    always {
+      cleanWs(deleteDirs: true, notFailBuild: true)
+    }
+  }
+}

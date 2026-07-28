@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: aac-mysql
+    ports:
+      - "{{ mysql_port | default(3306) }}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{ mysql_root_password | default('rootpass') }}"
+      MYSQL_DATABASE: "{{ mysql_database | default('answer_and_conquer') }}"
+      MYSQL_USER: "{{ mysql_user | default('aac') }}"
+      MYSQL_PASSWORD: "{{ mysql_password | default('aacpass') }}"
+    volumes:
+      - aac-mysql:/var/lib/mysql
+      - ./database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+    restart: unless-stopped
+
+  bot-api:
+    image: {{ full_bot_image }}
+    container_name: {{ bot_container_name }}
+    ports:
+      - "{{ bot_port }}:5050"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  web:
+    image: {{ full_web_image }}
+    container_name: {{ web_container_name }}
+    ports:
+      - "{{ web_port }}:3000"
+    env_file:
+      - .env
+    environment:
+      BOT_API_BASE: "http://{{ bot_container_name }}:5050"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: "{{ mysql_user | default('aac') }}"
+      DB_PASSWORD: "{{ mysql_password | default('aacpass') }}"
+      DB_NAME: "{{ mysql_database | default('answer_and_conquer') }}"
+    depends_on:
+      - mysql
+      - bot-api
+    restart: unless-stopped
+
+volumes:
+  aac-mysql:

@@ -1,9 +1,11 @@
+import os
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
 import uuid
 
 import requests
+from dotenv import load_dotenv
 
 try:
     from PIL import Image, ImageTk
@@ -11,7 +13,9 @@ except ImportError:
     Image = None
     ImageTk = None
 
-GAMEMODE_API_URL = "http://127.0.0.1:5050/api/start_match"
+load_dotenv()
+_BOT_API_BASE = os.getenv("BOT_API_BASE", "http://127.0.0.1:5050").rstrip("/")
+GAMEMODE_API_URL = f"{_BOT_API_BASE}/api/start_match"
 
 
 class GamemodeSelect(tk.Frame):

@@ -248,6 +248,12 @@ def choose_opponent_move(mode, board_state):
 
 
 # --- Routes ---------------------------------------------------------------
+@app.route("/health", methods=["GET"])
+def health():
+    """Liveness check for Docker, Jenkins, Ansible, and load balancers."""
+    return jsonify({"status": "ok"}), 200
+
+
 @app.route("/api/get_bot_move", methods=["POST"])
 def get_bot_move():
     """Stateless move calculation: the caller's board_state is the single

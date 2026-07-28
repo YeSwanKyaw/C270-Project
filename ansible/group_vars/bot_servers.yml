@@ -1,0 +1,3 @@
+# Optional Ansible Vault example (do not commit real secrets).
+# Create with: ansible-vault create ansible/group_vars/bot_servers/vault.yml
+# groq_api_key: "your_real_key"

@@ -1,0 +1,70 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: aac-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: answer_and_conquer
+      MYSQL_USER: aac
+      MYSQL_PASSWORD: aacpass
+    volumes:
+      - aac-mysql:/var/lib/mysql
+      - ./database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uaac", "-paacpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  bot-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: answer-and-conquer-bot:latest
+    container_name: aac-bot-api
+    ports:
+      - "5050:5050"
+    env_file:
+      - .env
+    environment:
+      FLASK_DEBUG: "false"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    image: answer-and-conquer-web:latest
+    container_name: aac-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      WEB_PORT: "3000"
+      BOT_API_BASE: http://bot-api:5050
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: aac
+      DB_PASSWORD: aacpass
+      DB_NAME: answer_and_conquer
+      QUESTIONS_PATH: /questions.json
+    depends_on:
+      mysql:
+        condition: service_healthy
+      bot-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  aac-mysql:

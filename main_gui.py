@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import messagebox
 import random
@@ -5,9 +6,12 @@ import json
 from pathlib import Path
 import threading
 import requests
+from dotenv import load_dotenv
 import game_engine
 
-GET_BOT_MOVE_URL = "http://127.0.0.1:5050/api/get_bot_move"
+load_dotenv()
+_BOT_API_BASE = os.getenv("BOT_API_BASE", "http://127.0.0.1:5050").rstrip("/")
+GET_BOT_MOVE_URL = f"{_BOT_API_BASE}/api/get_bot_move"
 
 class QuestionPopup:
     """Handles the Tkinter popup, the ticking timer, and the skip button."""

@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+__pycache__
+*.py[cod]
+.env
+.vscode
+Assets
+*.md
+tests
+ansible
+Jenkinsfile
+.cursor
+agent-transcripts

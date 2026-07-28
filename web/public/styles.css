@@ -1,0 +1,290 @@
+:root {
+  --bg: #1a2332;
+  --panel: #243447;
+  --accent: #e8a317;
+  --accent-dim: #c4890f;
+  --text: #f4f7fb;
+  --muted: #9db0c5;
+  --p1: #e74c3c;
+  --p2: #5dade2;
+  --empty: #3d5166;
+  --error: #ff6b6b;
+  --font-display: "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-display);
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 20% 0%, #2a3f55 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, #1e3a2f 0%, transparent 45%),
+    var(--bg);
+}
+
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.screen h1 {
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.tagline,
+.muted {
+  color: var(--muted);
+}
+
+label {
+  display: block;
+  margin: 1.5rem 0 0.4rem;
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #4a6078;
+  border-radius: 8px;
+  background: #15202b;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #1a1205;
+}
+
+button:hover {
+  background: var(--accent-dim);
+}
+
+button.secondary {
+  background: #3d5166;
+  color: var(--text);
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid #4a6078;
+}
+
+button.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.password-box {
+  margin: 1.25rem 0 0;
+  padding: 1rem;
+  border: 1px solid #4a6078;
+  border-radius: 8px;
+}
+
+.password-box legend {
+  padding: 0 0.35rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.menu-actions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.error {
+  color: var(--error);
+  margin-top: 1rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem 1.5rem;
+  background: var(--panel);
+  padding: 1.25rem;
+  border-radius: 12px;
+  margin: 1.25rem 0;
+}
+
+.stats dt {
+  color: var(--muted);
+}
+
+.stats dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  aspect-ratio: 1;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.cell {
+  border: none;
+  border-radius: 10px;
+  background: var(--empty);
+  color: transparent;
+  font-size: 0;
+  min-height: 48px;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.cell:not(:disabled):hover {
+  filter: brightness(1.15);
+  transform: scale(1.03);
+}
+
+.cell.p1 {
+  background: var(--p1);
+}
+
+.cell.p2 {
+  background: var(--p2);
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.message {
+  text-align: center;
+  min-height: 1.5rem;
+  margin-top: 1rem;
+}
+
+dialog {
+  border: 1px solid #4a6078;
+  border-radius: 12px;
+  padding: 1.5rem;
+  background: var(--panel);
+  color: var(--text);
+  max-width: 420px;
+  width: calc(100% - 2rem);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+#question-form input {
+  margin-top: 0.75rem;
+}
+
+body.theme-grey {
+  --bg: #1c1c1c;
+  --panel: #2a2a2a;
+  --empty: #404040;
+  --muted: #b0b0b0;
+}
+
+.rules-box {
+  white-space: pre-wrap;
+  background: var(--panel);
+  padding: 1.25rem;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  overflow: auto;
+}
+
+.settings-form label {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.settings-form select,
+.settings-form input[type="range"],
+.settings-form input[type="color"] {
+  width: 100%;
+  max-width: 320px;
+}
+
+.join-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.join-row input {
+  flex: 1;
+}
+
+.mp-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.mp-list li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #4a6078;
+}
+
+.chat {
+  margin-top: 1rem;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+#mp-chat {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  max-height: 140px;
+  overflow: auto;
+  font-size: 0.9rem;
+}
+
+.mode-pick {
+  display: grid;
+  gap: 0.75rem;
+}

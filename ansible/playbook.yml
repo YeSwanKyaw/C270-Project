@@ -1,0 +1,132 @@
+---
+# Deploy Answer and Conquer web + MySQL + Flask bot.
+#   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+#     -e "bot_image=answer-and-conquer-bot:latest" \
+#     -e "web_image=answer-and-conquer-web:latest" \
+#     -e "groq_api_key=YOUR_KEY"
+
+- name: Deploy Answer and Conquer (web + mysql + bot)
+  hosts: bot_servers
+  become: true
+  vars:
+    bot_image: "answer-and-conquer-bot:latest"
+    web_image: "answer-and-conquer-web:latest"
+    bot_port: 5050
+    web_port: 3000
+    mysql_port: 3306
+    bot_container_name: aac-bot-api
+    web_container_name: aac-web
+    mysql_container_name: aac-mysql
+    deploy_dir: /opt/answer-and-conquer
+    groq_api_key: ""
+    groq_model: "llama-3.1-8b-instant"
+    docker_registry: ""
+    mysql_user: aac
+    mysql_password: aacpass
+    mysql_database: answer_and_conquer
+    mysql_root_password: rootpass
+
+  tasks:
+    - name: Ensure apt cache is updated (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+      changed_when: false
+
+    - name: Install Docker prerequisites (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Check if Docker is installed
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+      failed_when: false
+
+    - name: Install Docker via get.docker.com when missing
+      ansible.builtin.shell: curl -fsSL https://get.docker.com | sh
+      when: docker_version.rc != 0
+      args:
+        creates: /usr/bin/docker
+
+    - name: Ensure Docker service is running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Install docker compose plugin dependencies
+      ansible.builtin.apt:
+        name: docker-compose-plugin
+        state: present
+      when: ansible_os_family == "Debian"
+      failed_when: false
+
+    - name: Create deploy directory
+      ansible.builtin.file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Set full image names
+      ansible.builtin.set_fact:
+        full_bot_image: "{{ (docker_registry ~ '/') if docker_registry else '' }}{{ bot_image }}"
+        full_web_image: "{{ (docker_registry ~ '/') if docker_registry else '' }}{{ web_image }}"
+
+    - name: Write environment file
+      ansible.builtin.copy:
+        dest: "{{ deploy_dir }}/.env"
+        mode: "0600"
+        content: |
+          GROQ_API_KEY={{ groq_api_key }}
+          GROQ_MODEL={{ groq_model }}
+          FLASK_DEBUG=false
+          BOT_API_BASE=http://aac-bot-api:5050
+          WEB_PORT={{ web_port }}
+          DB_HOST=mysql
+          DB_PORT=3306
+          DB_USER={{ mysql_user }}
+          DB_PASSWORD={{ mysql_password }}
+          DB_NAME={{ mysql_database }}
+      no_log: true
+
+    - name: Write docker-compose file
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ deploy_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Pull app images when using a registry
+      ansible.builtin.command: "docker pull {{ item }}"
+      loop:
+        - "{{ full_bot_image }}"
+        - "{{ full_web_image }}"
+      when: docker_registry | length > 0
+      failed_when: false
+
+    - name: Deploy stack with docker compose
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ deploy_dir }}"
+
+    - name: Wait for web health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ web_port }}/health"
+        method: GET
+        status_code: 200
+      register: web_health
+      retries: 18
+      delay: 5
+      until: web_health.status == 200
+
+    - name: Show deploy summary
+      ansible.builtin.debug:
+        msg: >-
+          Web http://HOST:{{ web_port }} | Bot :{{ bot_port }} | MySQL :{{ mysql_port }} |
+          images {{ full_web_image }} + {{ full_bot_image }}
