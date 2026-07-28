@@ -1,6 +1,6 @@
 ---
 # Deploy Answer and Conquer web + MySQL + Flask bot.
-#   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+#   ansible-playbook -i devops/ansible/inventory.ini devops/ansible/playbook.yml \
 #     -e "bot_image=answer-and-conquer-bot:latest" \
 #     -e "web_image=answer-and-conquer-web:latest" \
 #     -e "groq_api_key=YOUR_KEY"

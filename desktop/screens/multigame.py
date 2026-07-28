@@ -5,10 +5,9 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox
 
-import client
-import game_engine
-import host
-from main_gui import QuestionPopup
+import desktop.core.game_engine as game_engine
+from desktop.screens.main_gui import QuestionPopup
+from desktop.network import client, host
 
 
 class MultiGame(tk.Frame):
@@ -29,7 +28,7 @@ class MultiGame(tk.Frame):
         self.match_chance_mode = "normal"
         # ===================== END OF MULTIPLAYER RANDOM MODE =====================
 
-        questions_path = Path(__file__).with_name("questions.json")
+        questions_path = Path(__file__).resolve().parents[2] / "questions.json"
         with questions_path.open("r", encoding="utf-8") as file:
             self.master_question_bank = json.load(file)
         self.active_deck = list(self.master_question_bank)

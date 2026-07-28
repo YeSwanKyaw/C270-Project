@@ -2,7 +2,7 @@
 -- Same workflow as BillReminder:
 --   1. Open MySQL Workbench / DBeaver
 --   2. Connect to your MySQL server
---   3. Run this whole script
+--   3. Run this whole script (sql/database.sql)
 --   4. Put matching DB_* values in .env, then npm start
 
 CREATE DATABASE IF NOT EXISTS answer_and_conquer;

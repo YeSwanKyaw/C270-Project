@@ -55,7 +55,7 @@ pipeline {
     stage('Build Docker Images') {
       steps {
         sh """
-          docker build -t ${BOT_IMAGE}:${IMAGE_TAG} -t ${BOT_IMAGE}:latest .
+          docker build -f devops/Dockerfile -t ${BOT_IMAGE}:${IMAGE_TAG} -t ${BOT_IMAGE}:latest .
           docker build -f web/Dockerfile -t ${WEB_IMAGE}:${IMAGE_TAG} -t ${WEB_IMAGE}:latest .
         """
       }

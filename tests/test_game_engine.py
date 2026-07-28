@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from game_engine import BOARD_SIZE, GameEngine, STARTING_SKIPS
+from desktop.core.game_engine import BOARD_SIZE, GameEngine, STARTING_SKIPS
 
 
 @pytest.fixture

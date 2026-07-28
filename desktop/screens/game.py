@@ -1,7 +1,6 @@
 import tkinter as tk
 
-import client
-import host
+from desktop.network import client, host
 
 
 def close_connections():

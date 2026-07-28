@@ -13,7 +13,7 @@ except ImportError:
     Image = None
     ImageTk = None
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 _BOT_API_BASE = os.getenv("BOT_API_BASE", "http://127.0.0.1:5050").rstrip("/")
 GAMEMODE_API_URL = f"{_BOT_API_BASE}/api/start_match"
 
@@ -79,7 +79,7 @@ class GamemodeSelect(tk.Frame):
         if Image is None or ImageTk is None:
             return None
 
-        asset_path = Path(__file__).resolve().parent / "Assets" / image_name
+        asset_path = Path(__file__).resolve().parents[2] / "Assets" / image_name
         image = Image.open(asset_path)
         resampling_filter = getattr(Image, "Resampling", Image).LANCZOS
         image.thumbnail((150, 150), resampling_filter)

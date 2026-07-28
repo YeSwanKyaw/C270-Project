@@ -1,7 +1,7 @@
 import socket
 import threading
 
-from network_utils import receive_json, send_json
+from desktop.network.network_utils import receive_json, send_json
 
 
 PORT = 5000

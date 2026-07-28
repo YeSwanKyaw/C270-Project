@@ -7,9 +7,9 @@ from pathlib import Path
 import threading
 import requests
 from dotenv import load_dotenv
-import game_engine
+import desktop.core.game_engine as game_engine
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 _BOT_API_BASE = os.getenv("BOT_API_BASE", "http://127.0.0.1:5050").rstrip("/")
 GET_BOT_MOVE_URL = f"{_BOT_API_BASE}/api/get_bot_move"
 
@@ -144,7 +144,7 @@ class GameBoard(tk.Frame):
         self.sync_board_and_ui()
 
     def load_questions(self):
-        questions_path = Path(__file__).with_name("questions.json")
+        questions_path = Path(__file__).resolve().parents[2] / "questions.json"
         with questions_path.open("r", encoding="utf-8") as f:
             self.master_question_bank = json.load(f)
 

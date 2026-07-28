@@ -4,43 +4,55 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Answer and Conquer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+  <div class="bg-grid" aria-hidden="true"></div>
   <div id="app">
-    <section id="screen-login" class="screen">
-      <h1>Answer and Conquer</h1>
-      <p class="tagline">Claim the board. Answer to conquer.</p>
-
-      <div id="auth-login">
-        <label for="login-email">Email</label>
-        <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" />
-        <label for="login-password">Password</label>
-        <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
-        <button id="btn-login" type="button">Log In</button>
-        <p class="muted">No account? <button id="btn-show-register" type="button" class="linkish">Register</button></p>
+    <section id="screen-login" class="screen screen-login">
+      <div class="login-hero">
+        <p class="brand-mark">Online arena</p>
+        <h1 class="brand-title">Answer and Conquer</h1>
+        <p class="tagline">Claim the board. Answer to conquer.</p>
       </div>
 
-      <div id="auth-register" hidden>
-        <label for="reg-username">Username</label>
-        <input id="reg-username" type="text" maxlength="32" placeholder="Display name" autocomplete="username" />
-        <label for="reg-email">Email</label>
-        <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email" />
-        <label for="reg-password">Password</label>
-        <input id="reg-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
-        <label for="reg-confirm">Confirm password</label>
-        <input id="reg-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
-        <button id="btn-register" type="button">Create Account</button>
-        <p class="muted">Have an account? <button id="btn-show-login" type="button" class="linkish">Log in</button></p>
-      </div>
+      <div class="login-side">
+        <div id="auth-login" class="auth-panel">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="btn-login" type="button" class="btn-block">Log In</button>
+          <p class="muted auth-switch">No account? <button id="btn-show-register" type="button" class="linkish">Register</button></p>
+        </div>
 
-      <p id="login-error" class="error" hidden></p>
-      <p id="db-status" class="muted">Checking database…</p>
+        <div id="auth-register" class="auth-panel" hidden>
+          <label for="reg-username">Username</label>
+          <input id="reg-username" type="text" maxlength="32" placeholder="Display name" autocomplete="username" />
+          <label for="reg-email">Email</label>
+          <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          <label for="reg-password">Password</label>
+          <input id="reg-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
+          <label for="reg-confirm">Confirm password</label>
+          <input id="reg-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+          <button id="btn-register" type="button" class="btn-block">Create Account</button>
+          <p class="muted auth-switch">Have an account? <button id="btn-show-login" type="button" class="linkish">Log in</button></p>
+        </div>
+
+        <p id="login-error" class="error" hidden></p>
+        <p id="db-status" class="muted db-status">Checking database…</p>
+      </div>
     </section>
 
-    <section id="screen-menu" class="screen" hidden>
-      <h1>Main Menu</h1>
-      <p id="menu-user" class="muted"></p>
+    <section id="screen-menu" class="screen screen-menu" hidden>
+      <div class="menu-hero">
+        <p class="brand-mark">Answer and Conquer</p>
+        <h1>Main Menu</h1>
+        <p id="menu-user" class="muted"></p>
+      </div>
       <div class="menu-actions">
         <button id="btn-play-bot" type="button">VS Bot</button>
         <button id="btn-play-local" type="button">Local 2P</button>
@@ -52,7 +64,7 @@
       <p id="menu-error" class="error" hidden></p>
     </section>
 
-    <section id="screen-rules" class="screen" hidden>
+    <section id="screen-rules" class="screen screen-wide" hidden>
       <h1>Pre-Match Rules</h1>
       <p id="rules-subtitle" class="muted"></p>
       <pre id="rules-text" class="rules-box"></pre>
@@ -66,7 +78,7 @@
       </div>
     </section>
 
-    <section id="screen-settings" class="screen" hidden>
+    <section id="screen-settings" class="screen screen-wide" hidden>
       <h1>Settings</h1>
       <form id="settings-form" class="settings-form">
         <label>Theme
@@ -119,26 +131,36 @@
       </form>
     </section>
 
-    <section id="screen-stats" class="screen" hidden>
+    <section id="screen-stats" class="screen screen-wide" hidden>
       <h1>Player Statistics</h1>
       <dl id="stats-list" class="stats"></dl>
       <button id="btn-stats-back" type="button" class="secondary">Back</button>
     </section>
 
-    <section id="screen-mp" class="screen" hidden>
-      <h1>Online Multiplayer</h1>
-      <p id="mp-status" class="muted">Create or join a room.</p>
-      <div class="menu-actions">
-        <button id="btn-mp-create" type="button">Create Room</button>
-        <div class="join-row">
-          <input id="mp-code" type="text" maxlength="5" placeholder="ROOM CODE" />
-          <button id="btn-mp-join" type="button" class="secondary">Join</button>
+    <section id="screen-mp" class="screen screen-mp" hidden>
+      <div class="mp-lobby">
+        <h1>Online Multiplayer</h1>
+        <p id="mp-status" class="muted">Create or join a room.</p>
+        <div class="menu-actions">
+          <button id="btn-mp-create" type="button">Create Room</button>
+          <div class="join-row">
+            <input id="mp-code" type="text" maxlength="5" placeholder="ROOM CODE" />
+            <button id="btn-mp-join" type="button" class="secondary">Join</button>
+          </div>
+          <button id="btn-mp-start" type="button" hidden>Start Match</button>
+          <button id="btn-mp-leave" type="button" class="ghost">Back / Leave</button>
         </div>
-        <button id="btn-mp-start" type="button" hidden>Start Match</button>
-        <button id="btn-mp-leave" type="button" class="ghost">Back / Leave</button>
+        <ul id="mp-players" class="mp-list"></ul>
+        <div class="chat">
+          <ul id="mp-chat"></ul>
+          <form id="mp-chat-form" class="join-row">
+            <input id="mp-chat-input" type="text" maxlength="200" placeholder="Lobby chat…" />
+            <button type="submit" class="secondary">Send</button>
+          </form>
+        </div>
+        <p id="mp-error" class="error" hidden></p>
       </div>
-      <ul id="mp-players" class="mp-list"></ul>
-      <div id="mp-game" hidden>
+      <div id="mp-game" class="mp-arena" hidden>
         <header class="game-header">
           <div>
             <strong id="mp-mode">ONLINE</strong>
@@ -149,17 +171,9 @@
         <div id="mp-board" class="board"></div>
         <p id="mp-message" class="message"></p>
       </div>
-      <div class="chat">
-        <ul id="mp-chat"></ul>
-        <form id="mp-chat-form" class="join-row">
-          <input id="mp-chat-input" type="text" maxlength="200" placeholder="Lobby chat…" />
-          <button type="submit" class="secondary">Send</button>
-        </form>
-      </div>
-      <p id="mp-error" class="error" hidden></p>
     </section>
 
-    <section id="screen-game" class="screen" hidden>
+    <section id="screen-game" class="screen screen-game" hidden>
       <header class="game-header">
         <div>
           <strong id="game-mode"></strong>

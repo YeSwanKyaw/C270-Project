@@ -12,11 +12,11 @@ ENV NODE_ENV=production \
     WEB_PORT=3000 \
     BOT_API_BASE=http://bot-api:5050 \
     QUESTIONS_PATH=/questions.json \
-    MYSQL_HOST=mysql \
-    MYSQL_PORT=3306 \
-    MYSQL_USER=aac \
-    MYSQL_PASSWORD=aacpass \
-    MYSQL_DATABASE=answer_and_conquer
+    DB_HOST=mysql \
+    DB_PORT=3306 \
+    DB_USER=aac \
+    DB_PASSWORD=aacpass \
+    DB_NAME=answer_and_conquer
 
 EXPOSE 3000
 

@@ -2,11 +2,12 @@
   "name": "answer-and-conquer",
   "version": "1.0.0",
   "description": "Answer and Conquer web app with MySQL stats",
-  "main": "app.js",
+  "main": "web/app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "npm --prefix web test"
+    "start": "node web/app.js",
+    "dev": "nodemon web/app.js",
+    "test": "npm --prefix web test",
+    "test:python": "python -m pytest tests/ -v"
   },
   "engines": {
     "node": ">=22"

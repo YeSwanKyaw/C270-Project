@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from flask import Flask, request, jsonify
 import itertools
 import os
@@ -10,7 +12,7 @@ import groq
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 app = Flask(__name__)
 

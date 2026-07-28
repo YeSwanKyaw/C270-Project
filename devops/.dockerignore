@@ -8,7 +8,7 @@ __pycache__
 Assets
 *.md
 tests
+ansible
+Jenkinsfile
 .cursor
-node_modules
-web/node_modules
-desktop
+agent-transcripts

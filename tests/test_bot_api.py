@@ -1,7 +1,11 @@
 """Light Flask API tests for the bot service (mocked Groq)."""
 
+import sys
+from pathlib import Path
+
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bot"))
 from gamemode import app, GAMES_DB
 
 

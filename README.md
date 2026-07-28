@@ -2,13 +2,25 @@
 
 Browser game with **MySQL** stats and optional Flask bot for Smart AI / CPU.
 
-Tkinter (`main.py`) remains in the repo as **legacy desktop** code. The primary app is the website.
+## Project layout
+
+```
+desktop/     Legacy Tkinter UI (screens, engine, LAN network)
+bot/         Flask Smart AI / CPU API (gamemode.py)
+web/         Express + Socket.IO website (app.js, public/, db.js)
+devops/      Dockerfile, Jenkinsfile, Ansible
+sql/         database.sql (import in MySQL Workbench)
+Assets/      Images for desktop gamemode select
+tests/       pytest for bot + desktop engine
+```
+
+Root keeps: `package.json`, `docker-compose.yml`, `questions.json`, `.env`, `main.py` (shim → desktop).
 
 ## Quick start
 
 1. **Import the database** (same workflow as BillReminder):
    - Open MySQL Workbench / DBeaver
-   - Run [`database.sql`](database.sql)
+   - Run [`sql/database.sql`](sql/database.sql)
 2. Copy `.env.example` → `.env` and set your MySQL login + session secret:
    ```
    DB_HOST=127.0.0.1
@@ -24,14 +36,14 @@ Tkinter (`main.py`) remains in the repo as **legacy desktop** code. The primary 
    ```
 4. Open **http://127.0.0.1:3000**
 
-**Test login (from `database.sql`):** email `user@test.com` / password `password123`  
-Passwords are stored with MySQL `SHA1(?)` (same as BillReminder). Sessions last 1 week.
+**Test login:** email `user@test.com` / password `password123`  
+Passwords use MySQL `SHA1(?)` (same as BillReminder). Sessions last 1 week.
 
 Optional bot (Smart AI / better CPU):
 
 ```bash
 pip install -r requirements.txt
-python gamemode.py
+python bot/gamemode.py
 ```
 
 ## Features (web)
@@ -46,7 +58,7 @@ python gamemode.py
 | Online MP | Socket.IO rooms (create/join code), chat, synced board |
 | Stats | Wins / losses / spaces from MySQL |
 
-Database: import [`database.sql`](database.sql), then connect with `DB_*` in `.env`
+Database: import [`sql/database.sql`](sql/database.sql), then connect with `DB_*` in `.env`
 
 ## Architecture
 
@@ -70,7 +82,13 @@ python -m pytest tests/  # Python bot / engine tests
 
 ## CI/CD
 
-Jenkins builds **bot** + **web** images and Ansible deploys them (see `Jenkinsfile`, `ansible/`). Desktop Tkinter is not deployed.
+Jenkins builds **bot** + **web** images and Ansible deploys them:
+
+- Pipeline: [`devops/Jenkinsfile`](devops/Jenkinsfile) (set Script Path to `devops/Jenkinsfile` in Jenkins)
+- Ansible: [`devops/ansible/`](devops/ansible/)
+- Bot image: [`devops/Dockerfile`](devops/Dockerfile)
+
+Desktop Tkinter is not deployed.
 
 ## Legacy desktop
 

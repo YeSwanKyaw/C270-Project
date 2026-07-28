@@ -11,7 +11,7 @@ services:
       MYSQL_PASSWORD: "{{ mysql_password | default('aacpass') }}"
     volumes:
       - aac-mysql:/var/lib/mysql
-      - ./database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+      - ./sql/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
     restart: unless-stopped
 
   bot-api:

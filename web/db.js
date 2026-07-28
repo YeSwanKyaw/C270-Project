@@ -1,6 +1,6 @@
 /**
  * MySQL persistence — same pattern as BillReminder:
- * import database.sql in MySQL Workbench, then connect with DB_* from .env.
+ * import sql/database.sql in MySQL Workbench, then connect with DB_* from .env.
  * Auth: register/login with SHA1(?) password hashing + session (see app.js).
  */
 const mysql = require("mysql2/promise");

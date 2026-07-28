@@ -11,7 +11,7 @@ services:
       MYSQL_PASSWORD: aacpass
     volumes:
       - aac-mysql:/var/lib/mysql
-      - ./database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+      - ./sql/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uaac", "-paacpass"]
       interval: 10s
@@ -23,7 +23,7 @@ services:
   bot-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: devops/Dockerfile
     image: answer-and-conquer-bot:latest
     container_name: aac-bot-api
     ports:
