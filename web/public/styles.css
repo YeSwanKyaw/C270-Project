@@ -113,7 +113,9 @@ body {
 }
 
 .login-hero {
-  max-width: 18ch;
+  max-width: min(100%, 36rem);
+  min-width: 0;
+  overflow: visible;
 }
 
 .login-side {
@@ -131,7 +133,7 @@ body {
 }
 
 .menu-hero {
-  max-width: 16ch;
+  max-width: min(100%, 28rem);
 }
 
 .screen-wide {
@@ -248,14 +250,19 @@ body {
 }
 
 .screen-login .brand-title {
-  font-size: clamp(2.6rem, 7vw, 5rem);
-  max-width: none;
+  font-size: clamp(2.2rem, 5.5vw, 4.25rem);
+  max-width: 100%;
+  line-height: 1.05;
   background: linear-gradient(120deg, #fff 10%, var(--accent) 55%, var(--accent-hot) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   text-shadow: none;
   animation: titlePulse 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.screen-login .brand-title span {
+  display: block;
 }
 
 @keyframes titlePulse {
@@ -338,6 +345,13 @@ select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(255, 176, 32, 0.2);
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid rgba(255, 176, 32, 0.45);
+  outline-offset: 2px;
 }
 
 button {
@@ -439,12 +453,18 @@ button.linkish:hover {
   margin-top: 0;
   max-width: none;
   width: 100%;
+  align-items: stretch;
+  justify-items: stretch;
 }
 
 .menu-actions > button {
   text-align: left;
   padding: 1.1rem 1.2rem;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  white-space: nowrap;
 }
 
 .menu-actions .join-row {
@@ -530,12 +550,15 @@ button.linkish:hover {
   color: transparent;
   font-size: 0;
   min-height: 48px;
+  transform-origin: center;
+  will-change: transform;
   transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 }
 
 .cell:not(:disabled):hover {
   border-color: var(--accent);
-  transform: scale(1.04);
+  /* Avoid scaling overlap between cells (keeps board looking neat). */
+  transform: translateY(-2px);
   box-shadow: 0 0 0 1px rgba(255, 176, 32, 0.35);
 }
 
@@ -687,13 +710,14 @@ body.theme-grey {
   display: flex;
   flex-direction: column;
   min-height: 160px;
+  max-height: 100%;
 }
 
 #mp-chat {
   list-style: none;
   padding: 0;
   margin: 0 0 0.75rem;
-  max-height: none;
+  max-height: min(34vh, 280px);
   flex: 1;
   overflow: auto;
   font-size: 0.95rem;
