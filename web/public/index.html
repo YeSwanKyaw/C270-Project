@@ -11,16 +11,25 @@
 </head>
 <body>
   <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-flare" aria-hidden="true"></div>
   <div id="app">
     <section id="screen-login" class="screen screen-login">
       <div class="login-hero">
         <p class="brand-mark">Online arena</p>
         <h1 class="brand-title"><span>Answer</span><span>and</span><span>Conquer</span></h1>
         <p class="tagline">Claim the board. Answer to conquer.</p>
+        <div class="hero-board" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span class="lit p1"></span><span></span><span class="lit p2"></span><span></span>
+          <span></span><span></span><span class="lit p1"></span><span></span><span></span>
+          <span></span><span class="lit p2"></span><span></span><span class="lit p1"></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
       </div>
 
       <div class="login-side">
         <div id="auth-login" class="auth-panel">
+          <p class="panel-kicker">Enter the arena</p>
           <label for="login-email">Email</label>
           <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" />
           <label for="login-password">Password</label>
@@ -30,6 +39,7 @@
         </div>
 
         <div id="auth-register" class="auth-panel" hidden>
+          <p class="panel-kicker">Create your callsign</p>
           <label for="reg-username">Username</label>
           <input id="reg-username" type="text" maxlength="32" placeholder="Display name" autocomplete="username" />
           <label for="reg-email">Email</label>
@@ -50,16 +60,16 @@
     <section id="screen-menu" class="screen screen-menu" hidden>
       <div class="menu-hero">
         <p class="brand-mark">Answer and Conquer</p>
-        <h1>Main Menu</h1>
-        <p id="menu-user" class="muted"></p>
+        <h1>Choose<br />your fight</h1>
+        <p id="menu-user" class="muted player-chip"></p>
       </div>
       <div class="menu-actions">
-        <button id="btn-play-bot" type="button">VS Bot</button>
-        <button id="btn-play-local" type="button">Local 2P</button>
-        <button id="btn-play-mp" type="button">Online Multiplayer</button>
-        <button id="btn-stats" type="button" class="secondary">Player Stats</button>
-        <button id="btn-settings" type="button" class="secondary">Settings</button>
-        <button id="btn-logout" type="button" class="ghost">Log Out</button>
+        <button id="btn-play-bot" type="button" class="menu-primary"><span class="btn-label">VS Bot</span><span class="btn-hint">Solo duel</span></button>
+        <button id="btn-play-local" type="button" class="menu-primary"><span class="btn-label">Local 2P</span><span class="btn-hint">Same device</span></button>
+        <button id="btn-play-mp" type="button" class="menu-primary menu-wide"><span class="btn-label">Online Multiplayer</span><span class="btn-hint">Room codes + chat</span></button>
+        <button id="btn-stats" type="button" class="secondary"><span class="btn-label">Player Stats</span></button>
+        <button id="btn-settings" type="button" class="secondary"><span class="btn-label">Settings</span></button>
+        <button id="btn-logout" type="button" class="ghost"><span class="btn-label">Log Out</span></button>
       </div>
       <p id="menu-error" class="error" hidden></p>
     </section>
