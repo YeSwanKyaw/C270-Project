@@ -12,6 +12,12 @@ services:
     volumes:
       - aac-mysql:/var/lib/mysql
       - ./sql/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u{{ mysql_user | default('aac') }}", "-p{{ mysql_password | default('aacpass') }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   bot-api:
@@ -21,7 +27,15 @@ services:
       - "{{ bot_port }}:5050"
     env_file:
       - .env
+    environment:
+      FLASK_DEBUG: "false"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5050/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   web:
     image: {{ full_web_image }}
@@ -31,15 +45,19 @@ services:
     env_file:
       - .env
     environment:
+      WEB_PORT: "{{ web_port }}"
       BOT_API_BASE: "http://{{ bot_container_name }}:5050"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: "{{ mysql_user | default('aac') }}"
       DB_PASSWORD: "{{ mysql_password | default('aacpass') }}"
       DB_NAME: "{{ mysql_database | default('answer_and_conquer') }}"
+      QUESTIONS_PATH: /questions.json
     depends_on:
-      - mysql
-      - bot-api
+      mysql:
+        condition: service_healthy
+      bot-api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

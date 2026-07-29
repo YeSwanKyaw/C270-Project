@@ -30,7 +30,14 @@
   function showScreen(name) {
     SCREENS.forEach((s) => {
       const el = $(`screen-${s}`);
-      if (el) el.hidden = s !== name;
+      if (!el) return;
+      const active = s === name;
+      el.hidden = !active;
+      if (active) {
+        el.classList.remove("is-entering");
+        void el.offsetWidth;
+        el.classList.add("is-entering");
+      }
     });
   }
 
@@ -65,8 +72,14 @@
   }
 
   function showAuthPanel(which) {
-    $("auth-login").hidden = which !== "login";
-    $("auth-register").hidden = which !== "register";
+    const login = $("auth-login");
+    const register = $("auth-register");
+    login.hidden = which !== "login";
+    register.hidden = which !== "register";
+    const active = which === "login" ? login : register;
+    active.classList.remove("panel-swap");
+    void active.offsetWidth;
+    active.classList.add("panel-swap");
     setError($("login-error"), "");
   }
 
@@ -107,12 +120,17 @@
   }
 
   function renderBoard(match, boardEl, onClick) {
+    const firstPaint = !boardEl.dataset.ready;
     boardEl.innerHTML = "";
     match.board.forEach((row, r) => {
       row.forEach((cell, c) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "cell";
+        if (firstPaint) {
+          btn.classList.add("cell-enter");
+          btn.style.setProperty("--i", String(r * 5 + c));
+        }
         if (cell === 1) btn.classList.add("p1");
         if (cell === 2) btn.classList.add("p2");
         const canClick =
@@ -124,6 +142,7 @@
         boardEl.appendChild(btn);
       });
     });
+    boardEl.dataset.ready = "1";
   }
 
   function clearTimer() {
@@ -139,17 +158,22 @@
     state.timeLeft = payload.timerSeconds || 15;
     $("question-text").textContent = payload.question;
     $("question-answer").value = "";
-    $("question-timer").textContent = `Time: ${state.timeLeft}s · Skips: ${payload.skipsLeft}`;
+    const timerEl = $("question-timer");
+    timerEl.textContent = `Time: ${state.timeLeft}s · Skips: ${payload.skipsLeft}`;
+    timerEl.classList.toggle("timer-urgent", state.timeLeft <= 5);
     $("btn-skip").disabled = payload.skipsLeft <= 0;
-    $("question-dialog").showModal();
+    const qDialog = $("question-dialog");
+    qDialog.classList.add("dialog-pop");
+    qDialog.showModal();
     $("question-answer").focus();
 
     state.timerId = setInterval(async () => {
       state.timeLeft -= 1;
-      $("question-timer").textContent = `Time: ${state.timeLeft}s · Skips: ${payload.skipsLeft}`;
+      timerEl.textContent = `Time: ${state.timeLeft}s · Skips: ${payload.skipsLeft}`;
+      timerEl.classList.toggle("timer-urgent", state.timeLeft <= 5);
       if (state.timeLeft <= 0) {
         clearTimer();
-        $("question-dialog").close();
+        qDialog.close();
         await submitAnswer({ action: "timeout" });
       }
     }, 1000);
@@ -162,6 +186,7 @@
     });
     state.match = match;
     if (match.settings) applySettings(match.settings);
+    delete $("board").dataset.ready;
     $("game-message").textContent = "Select an empty tile to answer a question.";
     updateSoloHud(match);
     showScreen("game");
@@ -225,7 +250,9 @@
     $("result-body").textContent = saved
       ? "Stats have been saved to the database."
       : "Match ended.";
-    $("result-dialog").showModal();
+    const dialog = $("result-dialog");
+    dialog.classList.add("dialog-pop");
+    dialog.showModal();
   }
 
   function openRules(next) {
@@ -271,7 +298,9 @@
 
     const me = room.players.find((p) => p.userId === state.user.id);
     const inGame = room.status === "active" || room.status === "finished";
+    const wasHidden = $("mp-game").hidden;
     $("mp-game").hidden = !inGame;
+    if (inGame && wasHidden) delete $("mp-board").dataset.ready;
 
     if (inGame && room.board) {
       const myTurn =
@@ -552,8 +581,12 @@
         el.textContent = info.connected
           ? `Database connected (${info.database}) · ${info.userCount} user(s)`
           : "Database not connected";
+        el.classList.toggle("is-online", !!info.connected);
+        el.classList.toggle("is-offline", !info.connected);
       } catch (err) {
         el.textContent = `Database not connected — run npm start. ${err.message}`;
+        el.classList.add("is-offline");
+        el.classList.remove("is-online");
       }
     }
 

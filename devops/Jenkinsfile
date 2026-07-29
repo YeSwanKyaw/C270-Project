@@ -107,8 +107,8 @@ pipeline {
               REGISTRY_ARG="-e docker_registry=\${DOCKER_REGISTRY}"
             fi
             ansible-playbook \\
-              -i ansible/inventory.ini \\
-              ansible/playbook.yml \\
+              -i devops/ansible/inventory.ini \\
+              devops/ansible/playbook.yml \\
               --private-key "\$ANSIBLE_SSH_KEY" \\
               -u "\$ANSIBLE_USER" \\
               -e "bot_image=${BOT_IMAGE}:${IMAGE_TAG}" \\

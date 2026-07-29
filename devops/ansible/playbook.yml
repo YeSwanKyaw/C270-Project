@@ -74,6 +74,18 @@
         state: directory
         mode: "0755"
 
+    - name: Create SQL directory for MySQL init mount
+      ansible.builtin.file:
+        path: "{{ deploy_dir }}/sql"
+        state: directory
+        mode: "0755"
+
+    - name: Copy database schema for MySQL first boot
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../sql/database.sql"
+        dest: "{{ deploy_dir }}/sql/database.sql"
+        mode: "0644"
+
     - name: Set full image names
       ansible.builtin.set_fact:
         full_bot_image: "{{ (docker_registry ~ '/') if docker_registry else '' }}{{ bot_image }}"

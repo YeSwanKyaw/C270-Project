@@ -10,8 +10,16 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="bg-grid" aria-hidden="true"></div>
-  <div class="bg-flare" aria-hidden="true"></div>
+  <div class="bg-scene" aria-hidden="true">
+    <div class="bg-aurora"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-floor"></div>
+    <div class="bg-orbs">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="bg-noise"></div>
+    <div class="bg-vignette"></div>
+  </div>
   <div id="app">
     <section id="screen-login" class="screen screen-login">
       <div class="login-hero">
@@ -19,6 +27,7 @@
         <h1 class="brand-title"><span>Answer</span><span>and</span><span>Conquer</span></h1>
         <p class="tagline">Claim the board. Answer to conquer.</p>
         <div class="hero-board" aria-hidden="true">
+          <div class="frame-corners"></div>
           <span></span><span></span><span></span><span></span><span></span>
           <span></span><span class="lit p1"></span><span></span><span class="lit p2"></span><span></span>
           <span></span><span></span><span class="lit p1"></span><span></span><span></span>
@@ -63,15 +72,17 @@
         <h1>Choose<br />your fight</h1>
         <p id="menu-user" class="muted player-chip"></p>
       </div>
-      <div class="menu-actions">
-        <button id="btn-play-bot" type="button" class="menu-primary"><span class="btn-label">VS Bot</span><span class="btn-hint">Solo duel</span></button>
-        <button id="btn-play-local" type="button" class="menu-primary"><span class="btn-label">Local 2P</span><span class="btn-hint">Same device</span></button>
-        <button id="btn-play-mp" type="button" class="menu-primary menu-wide"><span class="btn-label">Online Multiplayer</span><span class="btn-hint">Room codes + chat</span></button>
-        <button id="btn-stats" type="button" class="secondary"><span class="btn-label">Player Stats</span></button>
-        <button id="btn-settings" type="button" class="secondary"><span class="btn-label">Settings</span></button>
-        <button id="btn-logout" type="button" class="ghost"><span class="btn-label">Log Out</span></button>
+      <div class="menu-side">
+        <div class="menu-actions">
+          <button id="btn-play-bot" type="button" class="menu-primary"><span class="btn-label">VS Bot</span><span class="btn-hint">Solo duel</span></button>
+          <button id="btn-play-local" type="button" class="menu-primary"><span class="btn-label">Local 2P</span><span class="btn-hint">Same device</span></button>
+          <button id="btn-play-mp" type="button" class="menu-primary menu-wide"><span class="btn-label">Online Multiplayer</span><span class="btn-hint">Room codes + chat</span></button>
+          <button id="btn-stats" type="button" class="secondary"><span class="btn-label">Player Stats</span></button>
+          <button id="btn-settings" type="button" class="secondary"><span class="btn-label">Settings</span></button>
+          <button id="btn-logout" type="button" class="ghost menu-wide"><span class="btn-label">Log Out</span></button>
+        </div>
+        <p id="menu-error" class="error" hidden></p>
       </div>
-      <p id="menu-error" class="error" hidden></p>
     </section>
 
     <section id="screen-rules" class="screen screen-wide" hidden>
