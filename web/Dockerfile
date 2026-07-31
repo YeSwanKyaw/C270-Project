@@ -11,12 +11,7 @@ COPY questions.json /questions.json
 ENV NODE_ENV=production \
     WEB_PORT=3000 \
     BOT_API_BASE=http://bot-api:5050 \
-    QUESTIONS_PATH=/questions.json \
-    DB_HOST=mysql \
-    DB_PORT=3306 \
-    DB_USER=aac \
-    DB_PASSWORD=aacpass \
-    DB_NAME=answer_and_conquer
+    QUESTIONS_PATH=/questions.json
 
 EXPOSE 3000
 

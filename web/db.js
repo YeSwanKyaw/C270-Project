@@ -37,7 +37,7 @@ const config = {
   database,
   waitForConnections: true,
   connectionLimit: 10,
-  ...(useSsl ? { ssl: { rejectUnauthorized: true } } : {}),
+  ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
 };
 
 let pool;
