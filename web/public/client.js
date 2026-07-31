@@ -297,7 +297,7 @@
     $("rules-text").textContent = RULES_TEXT;
     $("rules-subtitle").textContent =
       next === "bot"
-        ? "Mode: VS Bot"
+        ? "Pick a bot — match starts when you tap."
         : next === "local"
           ? "Mode: Local 2P"
           : "Mode: Online Multiplayer";

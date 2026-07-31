@@ -111,11 +111,17 @@
       <h1>Pre-Match Rules</h1>
       <p id="rules-subtitle" class="muted"></p>
       <pre id="rules-text" class="rules-box"></pre>
-      <div class="menu-actions">
-        <div id="rules-mode-pick" class="mode-pick" hidden>
-          <button data-bot-mode="cpu" type="button">VS CPU</button>
-          <button data-bot-mode="ai" type="button">VS Smart AI</button>
-        </div>
+      <div id="rules-mode-pick" class="mode-pick" hidden>
+        <button data-bot-mode="cpu" type="button" class="menu-primary">
+          <span class="btn-label">VS CPU</span>
+          <span class="btn-hint">Classic bot · tap to start</span>
+        </button>
+        <button data-bot-mode="ai" type="button" class="menu-primary">
+          <span class="btn-label">VS Smart AI</span>
+          <span class="btn-hint">Groq-powered · tap to start</span>
+        </button>
+      </div>
+      <div class="menu-actions rules-actions">
         <button id="btn-rules-start" type="button">Start Match</button>
         <button id="btn-rules-back" type="button" class="secondary">Back</button>
       </div>
