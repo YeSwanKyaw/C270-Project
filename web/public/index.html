@@ -3,18 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070c18" />
   <title>Answer and Conquer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <div class="bg-scene" aria-hidden="true">
+    <div class="bg-wash"></div>
+    <div class="bg-sun"></div>
     <div class="bg-aurora"></div>
+    <div class="bg-streaks"></div>
+    <div class="bg-beams"></div>
+    <div class="bg-hex"></div>
     <div class="bg-grid"></div>
+    <div class="bg-board"></div>
+    <div class="bg-rings"></div>
     <div class="bg-floor"></div>
+    <div class="bg-hud">
+      <i></i><i></i><i></i><i></i>
+    </div>
     <div class="bg-orbs">
+      <span></span><span></span><span></span><span></span><span></span>
       <span></span><span></span><span></span>
     </div>
     <div class="bg-noise"></div>
@@ -39,10 +51,14 @@
       <div class="login-side">
         <div id="auth-login" class="auth-panel">
           <p class="panel-kicker">Enter the arena</p>
+          <h2 class="panel-title">Welcome back</h2>
           <label for="login-email">Email</label>
           <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" />
           <label for="login-password">Password</label>
-          <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
+          <div class="password-field">
+            <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
+            <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+          </div>
           <button id="btn-login" type="button" class="btn-block">Log In</button>
           <p class="muted auth-switch">
             No account? <button id="btn-show-register" type="button" class="linkish">Register</button>
@@ -52,21 +68,29 @@
         </div>
 
         <div id="auth-register" class="auth-panel" hidden>
-          <p class="panel-kicker">Create your callsign</p>
+          <p class="panel-kicker">New combatant</p>
+          <h2 class="panel-title">Create your callsign</h2>
           <label for="reg-username">Username</label>
           <input id="reg-username" type="text" maxlength="32" placeholder="Display name" autocomplete="username" />
           <label for="reg-email">Email</label>
           <input id="reg-email" type="email" placeholder="you@example.com" autocomplete="email" />
           <label for="reg-password">Password</label>
-          <input id="reg-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
+          <div class="password-field">
+            <input id="reg-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
+            <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+          </div>
           <label for="reg-confirm">Confirm password</label>
-          <input id="reg-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+          <div class="password-field">
+            <input id="reg-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+            <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+          </div>
           <button id="btn-register" type="button" class="btn-block">Create Account</button>
           <p class="muted auth-switch">Have an account? <button id="btn-show-login" type="button" class="linkish">Log in</button></p>
         </div>
 
         <div id="auth-forgot" class="auth-panel" hidden>
-          <p class="panel-kicker">Reset password</p>
+          <p class="panel-kicker">Account recovery</p>
+          <h2 class="panel-title">Reset password</h2>
           <p class="muted auth-hint">
             Enter the email and username for your account, then choose a new password.
           </p>
@@ -75,9 +99,15 @@
           <label for="forgot-username">Username</label>
           <input id="forgot-username" type="text" maxlength="32" placeholder="Your display name" autocomplete="username" />
           <label for="forgot-password">New password</label>
-          <input id="forgot-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
+          <div class="password-field">
+            <input id="forgot-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
+            <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+          </div>
           <label for="forgot-confirm">Confirm new password</label>
-          <input id="forgot-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+          <div class="password-field">
+            <input id="forgot-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+            <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+          </div>
           <button id="btn-forgot" type="button" class="btn-block">Reset Password</button>
           <p class="muted auth-switch">Remembered it? <button id="btn-forgot-login" type="button" class="linkish">Back to log in</button></p>
         </div>
@@ -91,6 +121,7 @@
       <div class="menu-hero">
         <p class="brand-mark">Answer and Conquer</p>
         <h1>Choose<br />your fight</h1>
+        <p class="menu-lead muted">Pick a mode and take the board.</p>
         <p id="menu-user" class="muted player-chip"></p>
       </div>
       <div class="menu-side">
@@ -108,8 +139,11 @@
     </section>
 
     <section id="screen-rules" class="screen screen-wide" hidden>
-      <h1>Pre-Match Rules</h1>
-      <p id="rules-subtitle" class="muted"></p>
+      <header class="page-head">
+        <p class="brand-mark">Briefing</p>
+        <h1>Pre-Match Rules</h1>
+        <p id="rules-subtitle" class="muted"></p>
+      </header>
       <pre id="rules-text" class="rules-box"></pre>
       <div id="rules-mode-pick" class="mode-pick" hidden>
         <button data-bot-mode="cpu" type="button" class="menu-primary">
@@ -128,48 +162,62 @@
     </section>
 
     <section id="screen-settings" class="screen screen-wide" hidden>
-      <h1>Settings</h1>
+      <header class="page-head">
+        <p class="brand-mark">Preferences</p>
+        <h1>Settings</h1>
+      </header>
       <form id="settings-form" class="settings-form">
-        <label>Theme
-          <select id="set-theme">
-            <option value="default">Default</option>
-            <option value="grey">Grey</option>
-          </select>
-        </label>
-        <label>Player 1 tile
-          <input id="set-p1" type="color" value="#ff0000" />
-        </label>
-        <label>Player 2 tile
-          <input id="set-p2" type="color" value="#add8e6" />
-        </label>
-        <label>Question timer (seconds)
-          <input id="set-timer" type="range" min="5" max="60" value="15" />
-          <span id="set-timer-val">15</span>
-        </label>
-        <label>Skips
-          <input id="set-skips" type="range" min="0" max="10" value="3" />
-          <span id="set-skips-val">3</span>
-        </label>
-        <label>Chance mode
-          <select id="set-chance">
-            <option value="safe">Safe</option>
-            <option value="normal">Normal</option>
-            <option value="chaos">Chaos</option>
-          </select>
-        </label>
-        <label>Change display name
-          <input id="set-rename" type="text" maxlength="32" />
-        </label>
+        <div class="settings-grid">
+          <label>Theme
+            <select id="set-theme">
+              <option value="default">Default</option>
+              <option value="grey">Grey</option>
+            </select>
+          </label>
+          <label>Player 1 tile
+            <input id="set-p1" type="color" value="#ff0000" />
+          </label>
+          <label>Player 2 tile
+            <input id="set-p2" type="color" value="#add8e6" />
+          </label>
+          <label>Question timer (seconds)
+            <input id="set-timer" type="range" min="5" max="60" value="15" />
+            <span id="set-timer-val">15</span>
+          </label>
+          <label>Skips
+            <input id="set-skips" type="range" min="0" max="10" value="3" />
+            <span id="set-skips-val">3</span>
+          </label>
+          <label>Chance mode
+            <select id="set-chance">
+              <option value="safe">Safe</option>
+              <option value="normal">Normal</option>
+              <option value="chaos">Chaos</option>
+            </select>
+          </label>
+          <label class="settings-span">Change display name
+            <input id="set-rename" type="text" maxlength="32" />
+          </label>
+        </div>
         <fieldset class="password-box">
           <legend>Change password</legend>
           <label>Current password
-            <input id="set-pw-current" type="password" autocomplete="current-password" />
+            <div class="password-field">
+              <input id="set-pw-current" type="password" autocomplete="current-password" />
+              <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+            </div>
           </label>
           <label>New password
-            <input id="set-pw-new" type="password" autocomplete="new-password" />
+            <div class="password-field">
+              <input id="set-pw-new" type="password" autocomplete="new-password" />
+              <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+            </div>
           </label>
           <label>Confirm new password
-            <input id="set-pw-confirm" type="password" autocomplete="new-password" />
+            <div class="password-field">
+              <input id="set-pw-confirm" type="password" autocomplete="new-password" />
+              <button type="button" class="password-toggle" aria-label="Show password" title="Show password"></button>
+            </div>
           </label>
         </fieldset>
         <div class="dialog-actions">
@@ -181,14 +229,20 @@
     </section>
 
     <section id="screen-stats" class="screen screen-wide" hidden>
-      <h1>Player Statistics</h1>
+      <header class="page-head">
+        <p class="brand-mark">Record</p>
+        <h1>Player Statistics</h1>
+      </header>
       <dl id="stats-list" class="stats"></dl>
       <button id="btn-stats-back" type="button" class="secondary">Back</button>
     </section>
 
     <section id="screen-leaderboard" class="screen screen-wide" hidden>
-      <h1>Global Leaderboard</h1>
-      <p class="muted">Top players ranked by wins, then win rate.</p>
+      <header class="page-head">
+        <p class="brand-mark">Rankings</p>
+        <h1>Global Leaderboard</h1>
+        <p class="muted">Top players ranked by wins, then win rate.</p>
+      </header>
       <div class="leaderboard-wrap">
         <table id="leaderboard-table" class="leaderboard-table">
           <thead>
@@ -211,8 +265,11 @@
 
     <section id="screen-mp" class="screen screen-mp" hidden>
       <div class="mp-lobby">
-        <h1>Online Multiplayer</h1>
-        <p id="mp-status" class="muted">Create or join a room.</p>
+        <header class="page-head">
+          <p class="brand-mark">Lobby</p>
+          <h1>Online Multiplayer</h1>
+          <p id="mp-status" class="muted">Create or join a room.</p>
+        </header>
         <div class="menu-actions">
           <button id="btn-mp-create" type="button">Create Room</button>
           <div class="join-row">
@@ -261,10 +318,11 @@
 
   <dialog id="question-dialog">
     <form method="dialog" id="question-form">
+      <p class="panel-kicker">Trivia challenge</p>
       <h2>Answer to Conquer</h2>
       <p id="question-text"></p>
       <p id="question-timer" class="muted"></p>
-      <input id="question-answer" type="text" autocomplete="off" />
+      <input id="question-answer" type="text" autocomplete="off" placeholder="Type your answer…" aria-label="Your answer" />
       <div class="dialog-actions">
         <button type="submit" value="answer">Submit</button>
         <button type="button" id="btn-skip" class="secondary">Skip</button>
@@ -273,6 +331,7 @@
   </dialog>
 
   <dialog id="result-dialog">
+    <p class="panel-kicker">Match result</p>
     <h2 id="result-title"></h2>
     <p id="result-body"></p>
     <button id="btn-result-ok" type="button">Back to Menu</button>
