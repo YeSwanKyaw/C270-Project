@@ -370,6 +370,41 @@ async function changePassword(userId, currentPassword, newPassword, confirmPassw
   return { ok: true };
 }
 
+async function forgotPassword({ email, username, newPassword, confirmPassword }) {
+  const mail = String(email || "").trim().toLowerCase();
+  const name = String(username || "").trim();
+  const next = String(newPassword || "");
+  const confirm = String(confirmPassword || "");
+
+  if (!mail || !name || !next || !confirm) {
+    throw httpError("Please fill in all fields.", 400);
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+    throw httpError("Enter a valid email address.", 400);
+  }
+  if (next.length < 6) {
+    throw httpError("New password must be at least 6 characters.", 400);
+  }
+  if (next !== confirm) {
+    throw httpError("New passwords do not match.", 400);
+  }
+
+  const database = await getPool();
+  const [rows] = await database.execute(
+    "SELECT id FROM users WHERE email = ? AND username = ? LIMIT 1",
+    [mail, name]
+  );
+  if (!rows.length) {
+    throw httpError("No account matches that email and username.", 404);
+  }
+
+  await database.execute("UPDATE users SET password = SHA1(?) WHERE id = ?", [
+    next,
+    Number(rows[0].id),
+  ]);
+  return { ok: true, message: "Password reset. You can log in now." };
+}
+
 async function renameUser(userId, newUsername) {
   const name = String(newUsername || "").trim();
   if (!name) throw httpError("Enter a username", 400);
@@ -415,6 +450,44 @@ async function getStats(userId) {
     totalSpaces: row.total_spaces,
     winRate: Math.round(winRate * 10) / 10,
   };
+}
+
+async function getLeaderboard(limit = 20) {
+  const database = await getPool();
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
+  const mapRows = (rows) =>
+    rows.map((row, index) => ({
+      rank: index + 1,
+      id: Number(row.user_id ?? row.id),
+      username: row.username,
+      gamesPlayed: Number(row.games_played),
+      wins: Number(row.wins),
+      losses: Number(row.losses),
+      totalSpaces: Number(row.total_spaces),
+      winRate: Number(row.win_rate),
+    }));
+
+  try {
+    const [rows] = await database.query(
+      `SELECT user_id, username, games_played, wins, losses, win_rate, total_spaces
+       FROM v_global_leaderboard
+       LIMIT ${safeLimit}`
+    );
+    return mapRows(rows);
+  } catch (err) {
+    // View missing on older local DBs — same ranking until Azriel applies SQL on Aiven
+    if (err?.code !== "ER_NO_SUCH_TABLE" && err?.errno !== 1146) throw err;
+    const [rows] = await database.query(
+      `SELECT u.id AS user_id, u.username, s.games_played, s.wins, s.losses, s.total_spaces,
+              CASE WHEN s.games_played = 0 THEN 0
+                   ELSE ROUND((s.wins * 100.0) / s.games_played, 1) END AS win_rate
+       FROM users u
+       JOIN player_stats s ON s.user_id = u.id
+       ORDER BY s.wins DESC, win_rate DESC, s.total_spaces DESC, u.username ASC
+       LIMIT ${safeLimit}`
+    );
+    return mapRows(rows);
+  }
 }
 
 async function recordMatch(userId, { mode, result, spacesCaptured }) {
@@ -492,10 +565,12 @@ module.exports = {
   register,
   login,
   changePassword,
+  forgotPassword,
   getUserById,
   sessionPayload,
   renameUser,
   getStats,
+  getLeaderboard,
   getSettings,
   saveSettings,
   recordMatch,

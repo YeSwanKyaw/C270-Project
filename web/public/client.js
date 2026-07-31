@@ -25,7 +25,7 @@
   };
 
   const $ = (id) => document.getElementById(id);
-  const SCREENS = ["login", "menu", "rules", "settings", "stats", "mp", "game"];
+  const SCREENS = ["login", "menu", "rules", "settings", "stats", "leaderboard", "mp", "game"];
 
   function showScreen(name) {
     SCREENS.forEach((s) => {
@@ -43,6 +43,7 @@
 
   function setError(el, msg) {
     if (!el) return;
+    el.classList.remove("is-ok");
     if (!msg) {
       el.hidden = true;
       el.textContent = "";
@@ -50,6 +51,13 @@
     }
     el.hidden = false;
     el.textContent = msg;
+  }
+
+  function setOk(el, msg) {
+    if (!el) return;
+    el.classList.add("is-ok");
+    el.hidden = false;
+    el.textContent = msg || "";
   }
 
   async function api(path, options = {}) {
@@ -74,9 +82,12 @@
   function showAuthPanel(which) {
     const login = $("auth-login");
     const register = $("auth-register");
+    const forgot = $("auth-forgot");
     login.hidden = which !== "login";
     register.hidden = which !== "register";
-    const active = which === "login" ? login : register;
+    forgot.hidden = which !== "forgot";
+    const active =
+      which === "login" ? login : which === "register" ? register : forgot;
     active.classList.remove("panel-swap");
     void active.offsetWidth;
     active.classList.add("panel-swap");
@@ -104,6 +115,32 @@
     ];
     $("stats-list").innerHTML = fields
       .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`)
+      .join("");
+  }
+
+  function renderLeaderboard(leaders) {
+    const tbody = $("leaderboard-table").querySelector("tbody");
+    const empty = $("leaderboard-empty");
+    if (!leaders.length) {
+      tbody.innerHTML = "";
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+    const meId = state.user?.id;
+    tbody.innerHTML = leaders
+      .map((row) => {
+        const you = meId != null && Number(row.id) === Number(meId);
+        return `<tr class="${you ? "is-you" : ""}">
+          <td>${row.rank}</td>
+          <td>${row.username}${you ? " (you)" : ""}</td>
+          <td>${row.wins}</td>
+          <td>${row.losses}</td>
+          <td>${row.winRate}%</td>
+          <td>${row.gamesPlayed}</td>
+          <td>${row.totalSpaces}</td>
+        </tr>`;
+      })
       .join("");
   }
 
@@ -345,6 +382,8 @@
   // ---- Events ----
   $("btn-show-register").addEventListener("click", () => showAuthPanel("register"));
   $("btn-show-login").addEventListener("click", () => showAuthPanel("login"));
+  $("btn-show-forgot").addEventListener("click", () => showAuthPanel("forgot"));
+  $("btn-forgot-login").addEventListener("click", () => showAuthPanel("login"));
 
   $("btn-login").addEventListener("click", async () => {
     setError($("login-error"), "");
@@ -380,6 +419,27 @@
     }
   });
 
+  $("btn-forgot").addEventListener("click", async () => {
+    setError($("login-error"), "");
+    try {
+      const result = await api("/api/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({
+          email: $("forgot-email").value,
+          username: $("forgot-username").value,
+          newPassword: $("forgot-password").value,
+          confirmPassword: $("forgot-confirm").value,
+        }),
+      });
+      $("forgot-password").value = "";
+      $("forgot-confirm").value = "";
+      showAuthPanel("login");
+      setOk($("login-error"), result.message || "Password reset. You can log in now.");
+    } catch (err) {
+      setError($("login-error"), err.message);
+    }
+  });
+
   ["login-email", "login-password"].forEach((id) => {
     $(id).addEventListener("keydown", (e) => {
       if (e.key === "Enter") $("btn-login").click();
@@ -388,6 +448,11 @@
   ["reg-username", "reg-email", "reg-password", "reg-confirm"].forEach((id) => {
     $(id).addEventListener("keydown", (e) => {
       if (e.key === "Enter") $("btn-register").click();
+    });
+  });
+  ["forgot-email", "forgot-username", "forgot-password", "forgot-confirm"].forEach((id) => {
+    $(id).addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("btn-forgot").click();
     });
   });
 
@@ -505,6 +570,18 @@
     }
   });
   $("btn-stats-back").addEventListener("click", () => showScreen("menu"));
+
+  $("btn-leaderboard").addEventListener("click", async () => {
+    try {
+      setError($("menu-error"), "");
+      const data = await api("/api/leaderboard");
+      renderLeaderboard(data.leaders || []);
+      showScreen("leaderboard");
+    } catch (err) {
+      setError($("menu-error"), err.message);
+    }
+  });
+  $("btn-leaderboard-back").addEventListener("click", () => showScreen("menu"));
 
   $("btn-logout").addEventListener("click", async () => {
     try {

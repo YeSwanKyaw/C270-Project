@@ -67,6 +67,23 @@ SELECT
 FROM users u
 JOIN player_stats s ON s.user_id = u.id;
 
+-- Global leaderboard ranking (Azriel: run this on Aiven if DB already exists)
+CREATE OR REPLACE VIEW v_global_leaderboard AS
+SELECT
+    u.id AS user_id,
+    u.username,
+    s.games_played,
+    s.wins,
+    s.losses,
+    CASE
+        WHEN s.games_played = 0 THEN 0.0
+        ELSE ROUND((s.wins * 100.0) / s.games_played, 1)
+    END AS win_rate,
+    s.total_spaces
+FROM users u
+JOIN player_stats s ON s.user_id = u.id
+ORDER BY s.wins DESC, win_rate DESC, s.total_spaces DESC, u.username ASC;
+
 -- Test accounts: password is password123 (SHA1 hashed like BillReminder)
 INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@test.com', SHA1('password123'), 'admin'),

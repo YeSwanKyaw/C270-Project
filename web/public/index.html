@@ -44,7 +44,11 @@
           <label for="login-password">Password</label>
           <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
           <button id="btn-login" type="button" class="btn-block">Log In</button>
-          <p class="muted auth-switch">No account? <button id="btn-show-register" type="button" class="linkish">Register</button></p>
+          <p class="muted auth-switch">
+            No account? <button id="btn-show-register" type="button" class="linkish">Register</button>
+            ·
+            <button id="btn-show-forgot" type="button" class="linkish">Forgot password?</button>
+          </p>
         </div>
 
         <div id="auth-register" class="auth-panel" hidden>
@@ -59,6 +63,23 @@
           <input id="reg-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
           <button id="btn-register" type="button" class="btn-block">Create Account</button>
           <p class="muted auth-switch">Have an account? <button id="btn-show-login" type="button" class="linkish">Log in</button></p>
+        </div>
+
+        <div id="auth-forgot" class="auth-panel" hidden>
+          <p class="panel-kicker">Reset password</p>
+          <p class="muted auth-hint">
+            Enter the email and username for your account, then choose a new password.
+          </p>
+          <label for="forgot-email">Email</label>
+          <input id="forgot-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          <label for="forgot-username">Username</label>
+          <input id="forgot-username" type="text" maxlength="32" placeholder="Your display name" autocomplete="username" />
+          <label for="forgot-password">New password</label>
+          <input id="forgot-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
+          <label for="forgot-confirm">Confirm new password</label>
+          <input id="forgot-confirm" type="password" placeholder="Confirm password" autocomplete="new-password" />
+          <button id="btn-forgot" type="button" class="btn-block">Reset Password</button>
+          <p class="muted auth-switch">Remembered it? <button id="btn-forgot-login" type="button" class="linkish">Back to log in</button></p>
         </div>
 
         <p id="login-error" class="error" hidden></p>
@@ -78,7 +99,8 @@
           <button id="btn-play-local" type="button" class="menu-primary"><span class="btn-label">Local 2P</span><span class="btn-hint">Same device</span></button>
           <button id="btn-play-mp" type="button" class="menu-primary menu-wide"><span class="btn-label">Online Multiplayer</span><span class="btn-hint">Room codes + chat</span></button>
           <button id="btn-stats" type="button" class="secondary"><span class="btn-label">Player Stats</span></button>
-          <button id="btn-settings" type="button" class="secondary"><span class="btn-label">Settings</span></button>
+          <button id="btn-leaderboard" type="button" class="secondary"><span class="btn-label">Leaderboard</span></button>
+          <button id="btn-settings" type="button" class="secondary menu-wide"><span class="btn-label">Settings</span></button>
           <button id="btn-logout" type="button" class="ghost menu-wide"><span class="btn-label">Log Out</span></button>
         </div>
         <p id="menu-error" class="error" hidden></p>
@@ -156,6 +178,29 @@
       <h1>Player Statistics</h1>
       <dl id="stats-list" class="stats"></dl>
       <button id="btn-stats-back" type="button" class="secondary">Back</button>
+    </section>
+
+    <section id="screen-leaderboard" class="screen screen-wide" hidden>
+      <h1>Global Leaderboard</h1>
+      <p class="muted">Top players ranked by wins, then win rate.</p>
+      <div class="leaderboard-wrap">
+        <table id="leaderboard-table" class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Player</th>
+              <th>Wins</th>
+              <th>Losses</th>
+              <th>Win %</th>
+              <th>Games</th>
+              <th>Spaces</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="leaderboard-empty" class="muted" hidden>No players ranked yet.</p>
+      <button id="btn-leaderboard-back" type="button" class="secondary">Back</button>
     </section>
 
     <section id="screen-mp" class="screen screen-mp" hidden>

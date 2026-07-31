@@ -311,6 +311,15 @@ app.post("/api/password", requireAuth, async (req, res) => {
   }
 });
 
+app.post("/api/forgot-password", async (req, res) => {
+  try {
+    const result = await db.forgotPassword(req.body || {});
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 app.get("/api/stats/:userId", requireAuth, async (req, res) => {
   try {
     const userId = sessionUser(req).id;
@@ -320,6 +329,15 @@ app.get("/api/stats/:userId", requireAuth, async (req, res) => {
     const stats = await db.getStats(userId);
     if (!stats) return res.status(404).json({ error: "User not found" });
     res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/leaderboard", requireAuth, async (req, res) => {
+  try {
+    const leaders = await db.getLeaderboard(20);
+    res.json({ leaders });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
