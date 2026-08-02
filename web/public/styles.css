@@ -761,26 +761,34 @@ input[type="range"] {
 
 .password-field {
   position: relative;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
 }
 
 .password-field input {
-  padding-right: 2.85rem;
+  flex: 1;
+  min-width: 0;
+  padding-right: 0.95rem;
 }
 
 .password-toggle,
 button.password-toggle {
-  position: absolute;
-  top: 50%;
-  right: 0.3rem;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
   z-index: 2;
-  transform: translateY(-50%);
+  transform: none;
+  flex: 0 0 2.35rem;
   width: 2.35rem;
   height: 2.35rem;
+  margin-top: 0.15rem;
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: rgba(8, 14, 28, 0.85);
+  background: rgba(8, 14, 28, 0.9);
   color: var(--cyan);
   box-shadow: none;
   display: grid;
@@ -810,14 +818,14 @@ button.password-toggle:focus-visible {
   color: var(--accent);
   border-color: var(--accent);
   filter: none;
-  transform: translateY(-50%);
+  transform: none;
   background: rgba(255, 176, 32, 0.12);
   box-shadow: none;
 }
 
 .password-toggle:active,
 button.password-toggle:active {
-  transform: translateY(-50%);
+  transform: none;
 }
 
 .password-toggle::after,
@@ -832,6 +840,15 @@ button.password-toggle::after {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: rgba(5, 10, 22, 0.35);
+}
+
+.password-box .password-toggle,
+.password-box button.password-toggle {
+  margin-top: 0.35rem;
+}
+
+.settings-form .dialog-actions {
+  margin-top: 1.75rem;
 }
 
 .password-box legend {
