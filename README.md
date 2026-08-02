@@ -83,14 +83,25 @@ python -m pytest tests/  # Python bot / engine tests
 ## CI/CD
 
 
-### Deploy to Render (Cloud Production)
+## Deployment (Cloud Production)
 
-Our application is deployed using Render's fully managed web services.
+Our application supports dual-cloud deployment. You can host the application using Render (fully managed) or AWS (IaaS). **Both deployments share the same centralized Aiven MySQL cloud database.**
 
+### Option A: Deploy to Render (Auto-Deploy)
 1. **Create Web Services:** In the Render dashboard, create separate "Web Services" for the Node.js frontend and the Flask bot.
 2. **Connect Repository:** Link the services directly to the `main` branch of this GitHub repository.
-3. **Environment Configuration:** In the Render "Environment" tab for each service, input the required variables (e.g., `DB_HOST`, `DB_PASSWORD`, `GROQ_API_KEY`) ensuring sensitive keys are not hardcoded.
-4. **Auto-Deploy:** Render will automatically build and spin up the instances. Any future commits pushed to GitHub will trigger an automatic redeployment.
+3. **Environment Configuration:** In the Render "Environment" tab for each service, input the required variables (`DB_HOST`, `DB_PASSWORD`, `GROQ_API_KEY`).
+4. **Auto-Deploy:** Render will automatically build and spin up the instances on every push to the `main` branch.
+
+### Option B: Deploy to AWS (EC2 / AppRunner)
+1. **Provision Infrastructure:** Set up your preferred AWS hosting environment (e.g., an EC2 instance or AWS AppRunner).
+2. **Expose Ports:** Ensure your AWS Security Groups allow inbound TCP traffic on port **3000** (Web App) and port **5050** (Flask Bot).
+3. **Connect to Cloud Database:** You MUST override local database settings. Inject the following into your AWS environment variables or Secrets Manager to connect to the central Aiven database:
+   ```env
+   DB_HOST=mysql-2e31fad1-azrielthekiller-37d5.1.aivencloud.com
+   DB_USER=root
+   DB_NAME=answer_and_conquer
+   # Add DB_PASSWORD, SESSION_SECRET, and GROQ_API_KEY
 
 
 ### Verify after deploy
