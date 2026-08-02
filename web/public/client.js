@@ -21,6 +21,7 @@
     pendingBotMode: "cpu",
     socket: null,
     mp: null,
+    inMpUi: false, // true while on the multiplayer screen / in a room
     questionCtx: "solo", // solo | mp
   };
 
@@ -311,6 +312,8 @@
     if (state.socket) return state.socket;
     state.socket = io();
     state.socket.on("mp:state", (room) => {
+      // Ignore room updates after leaving (avoids reopening a finished room).
+      if (!state.inMpUi) return;
       state.mp = room;
       renderMp(room);
     });
@@ -320,7 +323,40 @@
     return state.socket;
   }
 
+  function resetMpLobbyUi() {
+    $("mp-status").textContent = "Create or join a room.";
+    $("mp-players").innerHTML = "";
+    $("mp-chat").innerHTML = "";
+    $("btn-mp-start").hidden = true;
+    $("mp-game").hidden = true;
+    $("mp-turn").textContent = "";
+    $("mp-skips").textContent = "";
+    $("mp-board").innerHTML = "";
+    delete $("mp-board").dataset.ready;
+    $("mp-code").value = "";
+    setError($("mp-error"), "");
+  }
+
+  /** Leave current room on the server and clear local lobby UI. */
+  function leaveMpSession() {
+    if (state.socket) state.socket.emit("mp:leave");
+    state.mp = null;
+    state.inMpUi = false;
+    state.questionCtx = "solo";
+    resetMpLobbyUi();
+  }
+
+  function openMpLobby() {
+    // Always drop any finished/stale room so Create/Join starts fresh.
+    leaveMpSession();
+    ensureSocket();
+    state.inMpUi = true;
+    resetMpLobbyUi();
+    showScreen("mp");
+  }
+
   function renderMp(room) {
+    if (!room || !state.inMpUi) return;
     showScreen("mp");
     $("mp-status").textContent = `Room ${room.code} · ${room.status}`;
     $("mp-players").innerHTML = room.players
@@ -465,9 +501,7 @@
     try {
       if (state.rulesNext === "local") await startSoloMatch("local");
       else if (state.rulesNext === "mp") {
-        ensureSocket();
-        showScreen("mp");
-        setError($("mp-error"), "");
+        openMpLobby();
       }
     } catch (err) {
       setError($("menu-error"), err.message);
@@ -590,8 +624,8 @@
       /* still clear local state */
     }
     state.user = null;
+    leaveMpSession();
     if (state.socket) {
-      state.socket.emit("mp:leave");
       state.socket.disconnect();
       state.socket = null;
     }
@@ -619,6 +653,9 @@
   });
   $("btn-result-ok").addEventListener("click", () => {
     $("result-dialog").close();
+    // After an MP match, leave the room so re-entering Online MP is a fresh lobby.
+    if (state.mp || state.inMpUi) leaveMpSession();
+    state.match = null;
     showScreen("menu");
   });
 
@@ -639,8 +676,7 @@
   });
   $("btn-mp-start").addEventListener("click", () => ensureSocket().emit("mp:start"));
   $("btn-mp-leave").addEventListener("click", () => {
-    if (state.socket) state.socket.emit("mp:leave");
-    state.mp = null;
+    leaveMpSession();
     showScreen("menu");
   });
   $("mp-chat-form").addEventListener("submit", (e) => {

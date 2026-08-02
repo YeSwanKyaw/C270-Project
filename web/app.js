@@ -548,6 +548,8 @@ io.on("connection", (socket) => {
 
   socket.on("mp:create", async ({ userId, username }) => {
     try {
+      // Drop any previous room (e.g. finished match) before creating a new one.
+      leaveRoom(socket);
       const uid = Number(userId);
       const uname = username || "Player";
       const code = roomCode();
@@ -583,6 +585,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("mp:join", ({ code, userId, username }) => {
+    leaveRoom(socket);
     const room = rooms.get(String(code || "").toUpperCase());
     if (!room) return socket.emit("mp:error", { error: "Room not found" });
     if (room.status !== "lobby") {
